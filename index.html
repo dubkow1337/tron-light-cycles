@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TRON: Light Cycles</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="game-title">⚡ TRON: LIGHT CYCLES ⚡</h1>
+        
+        <div class="game-area">
+            <canvas id="gameCanvas" width="1200" height="800"></canvas>
+            
+            <div class="score-board">
+                <div class="score blue">
+                    <span class="score-label">СИНИЙ</span>
+                    <span id="player1Score" class="score-value">0</span>
+                </div>
+                <div class="score-divider">:</div>
+                <div class="score orange">
+                    <span class="score-label">ОРАНЖЕВЫЙ</span>
+                    <span id="player2Score" class="score-value">0</span>
+                </div>
+            </div>
+            
+            <div id="gameMessage" class="game-message"></div>
+            <div id="victoryOverlay" class="victory-overlay"></div>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="mode-selector">
+                <button id="opponent2p" class="mode-btn active">🎮 2 ИГРОКА</button>
+                <button id="opponentAI" class="mode-btn">🤖 VS AI</button>
+                <button id="opponentSurvival" class="mode-btn">☠️ ВЫЖИВАНИЕ</button>
+            </div>
+            
+            <div class="arena-selector">
+                <button id="matchClassic" class="mode-btn active">🏆 КЛАССИКА</button>
+                <button id="matchTournament" class="mode-btn">👑 ТУРНИР</button>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="playButton" class="play-btn">▶ ИГРАТЬ</button>
+                <button id="soundToggle" class="sound-btn">🔊</button>
+            </div>
+            
+            <div class="record-info">
+                <span>🏆 РЕКОРД: </span>
+                <span id="recordDisplay">0</span>
+            </div>
+        </div>
+        
+        <div class="tips">
+            <div class="tip">
+                <strong>🔵 СИНИЙ:</strong>
+                <span>↑ ↓ ← →</span>
+            </div>
+            <div class="tip">
+                <strong>🟠 ОРАНЖЕВЫЙ:</strong>
+                <span>W A S D</span>
+            </div>
+            <div class="tip">
+                <strong>⏸ ПАУЗА:</strong>
+                <span>ESC</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Подключаем модули -->
+    <script src="js/utils.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/sounds.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/survival.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
