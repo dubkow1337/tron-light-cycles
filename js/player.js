@@ -1,6 +1,6 @@
 // ========== ИГРОКИ ==========
 
-// Константы
+// Константы (должны совпадать с canvas)
 const CELL_SIZE = 16;
 const WIDTH = 75;   // 1200 / 16
 const HEIGHT = 50;  // 800 / 16
@@ -45,3 +45,9 @@ function resetPlayers() {
     players[1].trail = [{ x: players[1].x, y: players[1].y }];
     players[1].alive = true;
 }
+
+// Делаем переменные глобальными
+window.CELL_SIZE = CELL_SIZE;
+window.WIDTH = WIDTH;
+window.HEIGHT = HEIGHT;
+window.players = players;
