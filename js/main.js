@@ -4,11 +4,20 @@ let canvas, ctx;
 
 function init() {
     canvas = document.getElementById('gameCanvas');
+    if (!canvas) {
+        console.error('Canvas not found!');
+        return;
+    }
     ctx = canvas.getContext('2d');
     
     // Делаем глобальными
     window.canvas = canvas;
     window.ctx = ctx;
+    window.CELL_SIZE = CELL_SIZE;
+    window.WIDTH = WIDTH;
+    window.HEIGHT = HEIGHT;
+    
+    console.log('init: canvas and ctx ready');
     
     // Инициализация
     if (typeof initSound === 'function') initSound();
@@ -26,7 +35,12 @@ function init() {
     }
     
     // Начальная отрисовка
-    if (typeof draw === 'function') draw();
+    if (typeof draw === 'function') {
+        draw();
+        console.log('Initial draw called');
+    } else {
+        console.error('draw function not found!');
+    }
     
     // Скрываем управление для второго игрока по умолчанию
     const p2Controls = document.getElementById('player2-controls');
@@ -35,6 +49,8 @@ function init() {
 
 // Запуск после загрузки страницы
 window.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded');
+    
     // Устанавливаем активные кнопки
     if (typeof setActiveButton === 'function') {
         setActiveButton('.mode-selector .mode-btn', 'opponent2p');
