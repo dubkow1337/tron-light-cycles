@@ -3,6 +3,15 @@
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
 
+// Получаем canvas и ctx глобально
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Константы (должны совпадать с player.js)
+const CELL_SIZE = 16;
+const WIDTH = 75;
+const HEIGHT = 50;
+
 function explode(x, y, color) {
     const particleCount = 40;
     for (let i = 0; i < particleCount; i++) {
@@ -54,4 +63,153 @@ function drawParticles() {
         ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+}
+
+// ========== ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ ==========
+function draw() {
+    if (!ctx) return;
+    
+    // Фон
+    ctx.fillStyle = '#03050a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.shadowBlur = 0;
+    
+    // Сетка
+    ctx.strokeStyle = '#0f3f3a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= WIDTH; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_SIZE, 0);
+        ctx.lineTo(i * CELL_SIZE, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL_SIZE);
+        ctx.lineTo(canvas.width, i * CELL_SIZE);
+        ctx.stroke();
+    }
+    
+    // Следы игроков
+    if (typeof players !== 'undefined') {
+        for (let p of players) {
+            if (p.trail && p.trail.length >= 2) {
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 6;
+                ctx.shadowColor = p.trailColor;
+                ctx.strokeStyle = p.trailColor;
+                ctx.moveTo(p.trail[0].x * CELL_SIZE + CELL_SIZE/2, p.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+                for (let i = 1; i < p.trail.length; i++) {
+                    ctx.lineTo(p.trail[i].x * CELL_SIZE + CELL_SIZE/2, p.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+                }
+                ctx.stroke();
+            }
+        }
+    }
+    
+    // Следы врагов (выживание)
+    if (typeof survivalEnemies !== 'undefined') {
+        for (let e of survivalEnemies) {
+            if (e.trail && e.trail.length >= 2) {
+                ctx.beginPath();
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = e.trailColor;
+                ctx.strokeStyle = e.trailColor;
+                ctx.moveTo(e.trail[0].x * CELL_SIZE + CELL_SIZE/2, e.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+                for (let i = 1; i < e.trail.length; i++) {
+                    ctx.lineTo(e.trail[i].x * CELL_SIZE + CELL_SIZE/2, e.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+                }
+                ctx.stroke();
+            }
+        }
+        
+        // Враги
+        for (let e of survivalEnemies) {
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.x * CELL_SIZE, e.y * CELL_SIZE, CELL_SIZE - 4, CELL_SIZE - 4);
+        }
+    }
+    
+    // Частицы
+    drawParticles();
+    
+    // Эффект столкновения
+    if (crashEffect.active) {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ffffff';
+        ctx.fillStyle = crashEffect.color;
+        ctx.fillRect(crashEffect.x * CELL_SIZE, crashEffect.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        crashEffect.timer--;
+        if (crashEffect.timer <= 0) crashEffect.active = false;
+    }
+    
+    // Мотоциклы
+    if (typeof players !== 'undefined') {
+        for (let p of players) {
+            if (p.alive) {
+                const cx = p.x * CELL_SIZE + CELL_SIZE / 2;
+                const cy = p.y * CELL_SIZE + CELL_SIZE / 2;
+                
+                ctx.save();
+                ctx.translate(cx, cy);
+                
+                if (p.dirX === 1) ctx.rotate(0);
+                else if (p.dirX === -1) ctx.rotate(Math.PI);
+                else if (p.dirY === -1) ctx.rotate(-Math.PI / 2);
+                else if (p.dirY === 1) ctx.rotate(Math.PI / 2);
+                
+                ctx.shadowBlur = 12 + 3 * Math.sin(Date.now() * 0.01);
+                ctx.shadowColor = p.color;
+                ctx.fillStyle = p.color;
+                
+                ctx.beginPath();
+                ctx.moveTo(10, 0);
+                ctx.lineTo(-5, -7);
+                ctx.lineTo(-5, 7);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(5, 0);
+                ctx.lineTo(-2, -3);
+                ctx.lineTo(-2, 3);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+    }
+    
+    // Обратный отсчёт
+    if (typeof countdownActive !== 'undefined' && countdownActive) {
+        ctx.font = 'bold 64px "Courier New"';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#00ffff';
+        ctx.fillStyle = '#00ffff';
+        let text = countdownValue > 0 ? countdownValue.toString() : '';
+        if (countdownValue === 0) text = 'GO!';
+        if (text) {
+            let scale = 1 + Math.sin(Date.now() * 0.02) * 0.2;
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2);
+            ctx.scale(scale, scale);
+            ctx.fillText(text, -ctx.measureText(text).width/2, 20);
+            ctx.restore();
+        }
+    }
+    
+    // Пауза
+    if (paused && gameActive && !countdownActive) {
+        ctx.font = 'bold 36px "Courier New"';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('⏸ ПАУЗА', canvas.width/2 - 70, canvas.height/2);
+    }
+    
+    ctx.shadowBlur = 0;
 }
