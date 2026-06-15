@@ -3,15 +3,6 @@
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
 
-// Получаем canvas и ctx глобально
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
-// Константы (должны совпадать с player.js)
-const CELL_SIZE = 16;
-const WIDTH = 75;
-const HEIGHT = 50;
-
 function explode(x, y, color) {
     const particleCount = 40;
     for (let i = 0; i < particleCount; i++) {
@@ -67,7 +58,11 @@ function drawParticles() {
 
 // ========== ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ ==========
 function draw() {
-    if (!ctx) return;
+    // Проверка наличия ctx
+    if (typeof ctx === 'undefined' || !ctx) {
+        console.error('draw: ctx is undefined');
+        return;
+    }
     
     // Фон
     ctx.fillStyle = '#03050a';
@@ -205,7 +200,7 @@ function draw() {
     }
     
     // Пауза
-    if (paused && gameActive && !countdownActive) {
+    if (typeof paused !== 'undefined' && paused && typeof gameActive !== 'undefined' && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
         ctx.fillStyle = '#ffffff';
         ctx.fillText('⏸ ПАУЗА', canvas.width/2 - 70, canvas.height/2);
