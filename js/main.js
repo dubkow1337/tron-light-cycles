@@ -1,48 +1,49 @@
 // ========== ТОЧКА ВХОДА ==========
 
-let canvas, ctx;
+// canvas и ctx объявлены в render.js, НЕ ОБЪЯВЛЯЕМ ИХ ЗДЕСЬ!
 
 function init() {
-    canvas = document.getElementById('gameCanvas');
-    ctx = canvas.getContext('2d');
+    // Используем глобальные canvas и ctx из render.js
+    if (typeof canvas === 'undefined' || typeof ctx === 'undefined') {
+        console.error('❌ canvas или ctx не найдены!');
+        return;
+    }
     
-    // Убеждаемся, что глобальные переменные доступны
     window.canvas = canvas;
     window.ctx = ctx;
     
-    // Инициализация
     if (typeof initSound === 'function') initSound();
     if (typeof setupEventListeners === 'function') setupEventListeners();
     
-    // Настройка отображения счёта
     const recordDisplay = document.getElementById('recordDisplay');
-    if (recordDisplay && bestRecord) {
+    if (recordDisplay && typeof bestRecord !== 'undefined') {
         recordDisplay.innerText = bestRecord;
     }
     
-    // Стартовое сообщение
-    showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
+    if (typeof showMessage === 'function') {
+        showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
+    }
     
-    // Начальная отрисовка
-    if (typeof draw === 'function') draw();
-    
-    // Скрываем управление для второго игрока по умолчанию
-    const p2Controls = document.getElementById('player2-controls');
-    if (p2Controls) p2Controls.style.opacity = '0.5';
+    function waitForDraw() {
+        if (typeof draw === 'function') {
+            draw();
+            console.log('✅ draw() найдена');
+        } else {
+            console.log('⏳ Ждём draw()...');
+            setTimeout(waitForDraw, 100);
+        }
+    }
+    waitForDraw();
 }
 
-// Запуск после загрузки страницы
 window.addEventListener('DOMContentLoaded', () => {
-    // Устанавливаем активные кнопки
+    console.log('DOM loaded');
     if (typeof setActiveButton === 'function') {
         setActiveButton('.mode-selector .mode-btn', 'opponent2p');
         setActiveButton('.arena-selector .mode-btn', 'matchClassic');
     }
-    
-    // Глобальные переменные
     window.opponentType = '2p';
     window.matchMode = 'classic';
     window.tournamentActive = false;
-    
     init();
 });
