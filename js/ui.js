@@ -14,19 +14,21 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// Переключение активной кнопки в группе
+// ===== НОВАЯ ВЕРСИЯ: сбрасываем ТОЛЬКО в своей группе =====
 function setMenuActive(groupSelector, activeId) {
-    // Находим все кнопки в группе (по селектору)
+    // Находим ВСЕ кнопки в группе (по селектору)
     const buttons = document.querySelectorAll(groupSelector);
+    // Убираем класс active у всех кнопок в этой группе
     buttons.forEach(btn => btn.classList.remove('active'));
-    // Активируем нужную
+    // Добавляем класс active только нужной кнопке
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
 function setupEventListeners() {
     // ===== ГЛАВНОЕ МЕНЮ =====
-    // Выбор противника (группа .opponent-btn)
+    
+    // --- ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) ---
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -53,7 +55,7 @@ function setupEventListeners() {
         });
     }
     
-    // Выбор режима матча (группа .match-btn)
+    // --- ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) ---
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
@@ -75,7 +77,7 @@ function setupEventListeners() {
         });
     }
     
-    // Кнопка ИГРАТЬ
+    // --- КНОПКА ИГРАТЬ ---
     const playBtn = document.getElementById('menuPlayBtn');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
@@ -85,7 +87,7 @@ function setupEventListeners() {
         });
     }
     
-    // Звук в меню
+    // --- ЗВУК В МЕНЮ ---
     const soundBtn = document.getElementById('menuSoundToggle');
     if (soundBtn) {
         soundBtn.addEventListener('click', () => {
@@ -113,6 +115,7 @@ function setupEventListeners() {
     
     // ===== КЛАВИАТУРА =====
     document.addEventListener('keydown', (e) => {
+        // ESC — пауза в игре
         if (e.key === 'Escape') {
             const gameScreen = document.getElementById('gameScreen');
             if (gameScreen && gameScreen.classList.contains('active')) {
@@ -124,6 +127,7 @@ function setupEventListeners() {
             }
         }
         
+        // Управление в игре
         const gameScreen = document.getElementById('gameScreen');
         if (!gameScreen || !gameScreen.classList.contains('active')) return;
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
