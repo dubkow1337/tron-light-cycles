@@ -42,4 +42,4 @@ window.addEventListener('DOMContentLoaded', () => {
     window.matchMode = 'classic';
     window.tournamentActive = false;
     init();
-});
+}); 
