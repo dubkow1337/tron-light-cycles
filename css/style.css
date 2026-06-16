@@ -46,7 +46,6 @@ body {
     filter: brightness(0.7) saturate(1.2);
 }
 
-/* Затемнение поверх видео */
 #menuScreen::before {
     content: '';
     position: fixed;
@@ -59,22 +58,22 @@ body {
     pointer-events: none;
 }
 
-/* ===== ГЛАВНОЕ МЕНЮ ===== */
+/* ===== ГЛАВНОЕ МЕНЮ (СТЕКЛО) ===== */
 .menu-container {
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.2);        /* Полупрозрачный чёрный */
-    backdrop-filter: blur(20px);            /* Сильное размытие фона */
-    -webkit-backdrop-filter: blur(20px);    /* Для Safari */
-    border: 1px solid rgba(0, 255, 255, 0.2); /* Тонкая голубая рамка */
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(0, 255, 255, 0.25);
     border-radius: 30px;
     padding: 40px 50px;
     max-width: 600px;
     width: 100%;
     box-shadow: 
-        0 8px 32px rgba(0, 0, 0, 0.4),       /* Тень */
-        0 0 60px rgba(0, 255, 255, 0.05),    /* Лёгкое свечение */
-        inset 0 1px 0 rgba(255, 255, 255, 0.05); /* Светлая верхняя граница (эффект стекла) */
+        0 8px 32px rgba(0, 0, 0, 0.4),
+        0 0 60px rgba(0, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .game-title {
@@ -91,12 +90,13 @@ body {
 }
 
 .menu-section h3 {
-    color: #88aaff;
+    color: #ffaa00;
     font-size: 14px;
     margin-bottom: 12px;
     text-align: center;
     letter-spacing: 2px;
     text-transform: uppercase;
+    text-shadow: 0 0 10px rgba(255, 170, 0, 0.3);
 }
 
 .menu-grid {
@@ -105,9 +105,9 @@ body {
     gap: 10px;
 }
 
-/* ===== КНОПКИ В МЕНЮ ===== */
+/* ===== КНОПКИ В МЕНЮ (СИНИЕ) ===== */
 .menu-btn {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     border: 1px solid #00ffff;
     color: #00ffff;
     font-family: 'Courier New', monospace;
@@ -124,6 +124,7 @@ body {
 .menu-btn:hover {
     transform: scale(1.04);
     box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.1);
 }
 
 .menu-btn.active {
@@ -131,6 +132,7 @@ body {
     box-shadow: 0 0 30px #00ffff;
     background: #00ffff;
     color: #000000;
+    border-color: #00ffff;
 }
 
 @keyframes pulse-glow {
@@ -148,11 +150,11 @@ body {
     }
 }
 
-/* ===== КНОПКА ИГРАТЬ ===== */
+/* ===== КНОПКА ИГРАТЬ (ОРАНЖЕВО-СИНЯЯ) ===== */
 .play-btn {
-    background: linear-gradient(135deg, #00ff88, #00aa44);
+    background: linear-gradient(135deg, #ffaa00, #ff8800);
     border: none;
-    color: #000;
+    color: #000000;
     font-weight: bold;
     padding: 15px;
     border-radius: 30px;
@@ -163,11 +165,14 @@ body {
     width: 100%;
     letter-spacing: 2px;
     text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
+    border: 1px solid #ffaa00;
 }
 
 .play-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 35px #00ff88, 0 0 70px rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 40px rgba(255, 170, 0, 0.6), 0 0 80px rgba(255, 170, 0, 0.2);
+    background: linear-gradient(135deg, #ffbb22, #ff9900);
 }
 
 .play-btn:active {
@@ -181,11 +186,11 @@ body {
     align-items: center;
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid rgba(0, 255, 255, 0.2);
+    border-top: 1px solid rgba(0, 255, 255, 0.15);
 }
 
 .sound-btn {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     border: 1px solid #ffaa00;
     color: #ffaa00;
     font-size: 16px;
@@ -197,8 +202,8 @@ body {
 }
 
 .sound-btn:hover {
-    background: rgba(255, 170, 0, 0.2);
-    box-shadow: 0 0 20px rgba(255, 170, 0, 0.2);
+    background: rgba(255, 170, 0, 0.15);
+    box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
 }
 
 .menu-record {
@@ -221,7 +226,7 @@ body {
     position: absolute;
     top: -50px;
     left: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     border: 1px solid #ff5555;
     color: #ff5555;
     padding: 8px 20px;
@@ -235,7 +240,7 @@ body {
 
 .back-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.3);
+    box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.2);
 }
 
 .game-score {
@@ -243,19 +248,11 @@ body {
     justify-content: center;
     align-items: center;
     gap: 30px;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.6);
     padding: 8px 25px;
     border-radius: 40px;
-    border: 1px solid rgba(0, 255, 255, 0.3);
+    border: 1px solid rgba(0, 255, 255, 0.2);
     backdrop-filter: blur(5px);
-}
-
-.score {
-    display: flex;
-    gap: 10px;
-    font-size: 20px;
-    font-weight: bold;
-    font-family: monospace;
 }
 
 .score.blue {
@@ -317,8 +314,8 @@ body {
     transform: translate(-50%, -50%);
     font-size: 36px;
     font-weight: bold;
-    color: #ffff00;
-    text-shadow: 0 0 20px #ffaa00, 0 0 40px #ff6600;
+    color: #ffaa00;
+    text-shadow: 0 0 20px #ffaa00, 0 0 40px #ff8800;
     background: rgba(0, 0, 0, 0.9);
     padding: 15px 30px;
     border-radius: 20px;
@@ -327,7 +324,7 @@ body {
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
-    border: 2px solid #ffff00;
+    border: 2px solid #ffaa00;
 }
 
 .victory-overlay.show {
@@ -340,13 +337,11 @@ body {
         width: 100%;
         height: auto;
     }
-    
     .game-score {
         font-size: 16px;
         padding: 6px 15px;
         gap: 15px;
     }
-    
     .menu-container {
         padding: 30px 25px;
     }
@@ -356,37 +351,30 @@ body {
     .game-title {
         font-size: 20px;
     }
-    
     .menu-container {
         padding: 20px 15px;
         border-radius: 20px;
     }
-    
     .menu-btn {
         font-size: 12px;
         padding: 10px;
     }
-    
     .play-btn {
         font-size: 16px;
         padding: 12px;
     }
-    
     .back-btn {
         top: -40px;
         font-size: 12px;
         padding: 6px 15px;
     }
-    
     .score {
         font-size: 16px;
     }
-    
     .game-score {
         gap: 10px;
         padding: 5px 12px;
     }
-    
     .victory-overlay {
         font-size: 24px;
         padding: 12px 20px;
@@ -398,14 +386,12 @@ body {
         font-size: 10px;
         padding: 8px;
     }
-    
     .menu-footer {
         flex-direction: column;
         gap: 10px;
     }
-    
     .sound-btn {
         width: 100%;
         text-align: center;
     }
-        }
+}
