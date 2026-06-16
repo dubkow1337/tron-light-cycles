@@ -1,10 +1,14 @@
 // ========== ТОЧКА ВХОДА ==========
 
-let canvas, ctx;
+// canvas и ctx объявлены в render.js, НЕ ОБЪЯВЛЯЕМ ИХ ЗДЕСЬ!
 
 function init() {
-    canvas = document.getElementById('gameCanvas');
-    ctx = canvas.getContext('2d');
+    // Используем глобальные canvas и ctx из render.js
+    if (typeof canvas === 'undefined' || typeof ctx === 'undefined') {
+        console.error('❌ canvas или ctx не найдены!');
+        return;
+    }
+    
     window.canvas = canvas;
     window.ctx = ctx;
     
@@ -12,7 +16,9 @@ function init() {
     if (typeof setupEventListeners === 'function') setupEventListeners();
     
     // Показываем меню
-    showScreen('menuScreen');
+    if (typeof showScreen === 'function') {
+        showScreen('menuScreen');
+    }
     
     // Загружаем рекорд
     const recordDisplay = document.getElementById('menuRecordDisplay');
@@ -21,7 +27,9 @@ function init() {
     }
     
     // Показываем сообщение в меню
-    showMessage('Выберите настройки и нажмите ИГРАТЬ');
+    if (typeof showMessage === 'function') {
+        showMessage('Выберите настройки и нажмите ИГРАТЬ');
+    }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
