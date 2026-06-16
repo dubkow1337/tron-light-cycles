@@ -23,16 +23,48 @@ body {
     justify-content: center;
     align-items: center;
     padding: 20px;
+    position: relative;
 }
 
 .screen.active {
     display: flex;
 }
 
+/* ===== ФОНОВОЕ ВИДЕО ===== */
+#bgVideo {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    object-fit: cover;
+    opacity: 0.6;
+    filter: brightness(0.7) saturate(1.2);
+}
+
+/* Затемнение поверх видео */
+#menuScreen::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1;
+    pointer-events: none;
+}
+
 /* ===== ГЛАВНОЕ МЕНЮ ===== */
 .menu-container {
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 2;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
     border: 2px solid #00ffff;
     border-radius: 30px;
     padding: 40px 50px;
@@ -69,7 +101,7 @@ body {
     gap: 10px;
 }
 
-/* ===== КНОПКИ В МЕНЮ (ОБЩИЕ) ===== */
+/* ===== КНОПКИ В МЕНЮ ===== */
 .menu-btn {
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid #00ffff;
@@ -80,24 +112,36 @@ body {
     padding: 12px;
     border-radius: 30px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
     text-align: center;
     letter-spacing: 1px;
 }
 
 .menu-btn:hover {
-    background: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-    transform: scale(1.02);
+    transform: scale(1.04);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
 }
 
-/* ===== АКТИВНАЯ КНОПКА (ПОДСВЕТКА) ===== */
 .menu-btn.active {
+    animation: pulse-glow 1.8s infinite;
+    box-shadow: 0 0 30px #00ffff;
     background: #00ffff;
     color: #000000;
-    box-shadow: 0 0 30px #00ffff, 0 0 60px rgba(0, 255, 255, 0.3);
-    border-color: #00ffff;
-    transform: scale(1.02);
+}
+
+@keyframes pulse-glow {
+    0% {
+        box-shadow: 0 0 15px #00ffff, 0 0 30px rgba(0, 255, 255, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 35px #00ffff, 0 0 60px rgba(0, 255, 255, 0.5);
+        transform: scale(1.02);
+    }
+    100% {
+        box-shadow: 0 0 15px #00ffff, 0 0 30px rgba(0, 255, 255, 0.3);
+        transform: scale(1);
+    }
 }
 
 /* ===== КНОПКА ИГРАТЬ ===== */
@@ -110,7 +154,7 @@ body {
     border-radius: 30px;
     font-size: 18px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     font-family: monospace;
     width: 100%;
     letter-spacing: 2px;
@@ -118,11 +162,15 @@ body {
 }
 
 .play-btn:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 30px #00ff88, 0 0 60px rgba(0, 255, 136, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 0 35px #00ff88, 0 0 70px rgba(0, 255, 136, 0.3);
 }
 
-/* ===== НИЖНЯЯ ПАНЕЛЬ МЕНЮ ===== */
+.play-btn:active {
+    transform: scale(0.95);
+}
+
+/* ===== НИЖНЯЯ ПАНЕЛЬ ===== */
 .menu-footer {
     display: flex;
     justify-content: space-between;
@@ -165,7 +213,6 @@ body {
     gap: 15px;
 }
 
-/* ===== КНОПКА НАЗАД ===== */
 .back-btn {
     position: absolute;
     top: -50px;
@@ -178,17 +225,15 @@ body {
     cursor: pointer;
     font-family: monospace;
     font-size: 14px;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     z-index: 50;
 }
 
 .back-btn:hover {
-    background: rgba(255, 85, 85, 0.2);
-    box-shadow: 0 0 20px rgba(255, 85, 85, 0.3);
     transform: scale(1.05);
+    box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.3);
 }
 
-/* ===== СЧЁТ В ИГРЕ ===== */
 .game-score {
     display: flex;
     justify-content: center;
@@ -233,7 +278,6 @@ body {
     text-align: center;
 }
 
-/* ===== ИГРОВОЕ ПОЛЕ ===== */
 .game-area {
     position: relative;
     border: 3px solid #00ffff;
@@ -246,7 +290,6 @@ body {
     border-radius: 6px;
 }
 
-/* ===== СООБЩЕНИЯ ===== */
 .game-message {
     position: absolute;
     bottom: 15px;
@@ -287,7 +330,7 @@ body {
     opacity: 1;
 }
 
-/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+/* ===== АДАПТАЦИЯ ===== */
 @media (max-width: 1300px) {
     #gameCanvas {
         width: 100%;
@@ -361,4 +404,4 @@ body {
         width: 100%;
         text-align: center;
     }
-}
+        }
