@@ -8,11 +8,6 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
-// crashEffect из render.js
-if (typeof crashEffect === 'undefined') {
-    var crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
-}
-
 // Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
@@ -70,10 +65,12 @@ function updateGame() {
         if (typeof aiMove === 'function') aiMove();
     }
     
+    // ОБНОВЛЕНИЕ БОНУСОВ
     if (typeof updateBonuses === 'function') {
         updateBonuses();
     }
     
+    // СБОР БОНУСОВ
     if (typeof bonuses !== 'undefined') {
         for (let i = 0; i < bonuses.length; i++) {
             let b = bonuses[i];
@@ -92,6 +89,7 @@ function updateGame() {
     for (let p of players) {
         if (!p.alive) continue;
         
+        // ЩИТ
         if (bonusShieldActive && p === players[0]) {
             continue;
         }
