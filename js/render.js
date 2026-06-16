@@ -3,11 +3,12 @@
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
 
-// Получаем canvas и ctx глобально
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Константы НЕ ОБЪЯВЛЯЕМ — они из player.js
+const CELL_SIZE = 16;
+const WIDTH = 75;
+const HEIGHT = 50;
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -62,7 +63,6 @@ function drawParticles() {
     ctx.globalAlpha = 1;
 }
 
-// ========== ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ ==========
 function draw() {
     if (!ctx) return;
     
@@ -70,7 +70,6 @@ function draw() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
-    // Сетка
     ctx.strokeStyle = '#0f3f3a';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
@@ -84,7 +83,6 @@ function draw() {
         ctx.stroke();
     }
     
-    // Следы игроков
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.trail && p.trail.length >= 2) {
@@ -104,7 +102,6 @@ function draw() {
         }
     }
     
-    // Следы врагов
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
             if (e.trail && e.trail.length >= 2) {
@@ -139,12 +136,11 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // БОНУСЫ
+    // БОНУСЫ (ОТРИСОВКА) — ЭТОТ БЛОК НАДО БУДЕТ ПОПРАВИТЬ
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
     
-    // Мотоциклы
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.alive) {
@@ -177,7 +173,6 @@ function draw() {
         }
     }
     
-    // Обратный отсчёт
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
