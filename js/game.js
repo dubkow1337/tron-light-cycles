@@ -8,6 +8,11 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
+// crashEffect из render.js
+if (typeof crashEffect === 'undefined') {
+    var crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+}
+
 // Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
@@ -63,25 +68,6 @@ function updateGame() {
         if (typeof updateSurvival === 'function') updateSurvival();
     } else {
         if (typeof aiMove === 'function') aiMove();
-    }
-    
-    // ОБНОВЛЕНИЕ БОНУСОВ
-    if (typeof updateBonuses === 'function') {
-        updateBonuses();
-    }
-    
-    // СБОР БОНУСОВ
-    if (typeof bonuses !== 'undefined') {
-        for (let i = 0; i < bonuses.length; i++) {
-            let b = bonuses[i];
-            if (players[0].alive && players[0].x === b.x && players[0].y === b.y) {
-                if (typeof collectBonus === 'function') {
-                    collectBonus(b, players[0]);
-                }
-                bonuses.splice(i, 1);
-                i--;
-            }
-        }
     }
     
     if (typeof updateParticles === 'function') updateParticles();
@@ -189,7 +175,6 @@ function updateGame() {
 
 function initGame() {
     if (typeof resetPlayers === 'function') resetPlayers();
-    if (typeof resetBonuses === 'function') resetBonuses();
     
     if (opponentType === 'survival') {
         if (typeof spawnSurvivalEnemies === 'function') spawnSurvivalEnemies();
