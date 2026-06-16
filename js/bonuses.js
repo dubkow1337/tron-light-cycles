@@ -3,26 +3,24 @@
 let bonuses = [];
 let bonusTimer = 0;
 
-// Активные эффекты (глобальные флаги)
-let shieldActive = false;
-let shieldEndTime = 0;
-let speedActive = false;
-let speedEndTime = 0;
-let slowActive = false;
-let slowEndTime = 0;
-let noTrailActive = false;
-let noTrailEndTime = 0;
+let bonusShieldActive = false;
+let bonusShieldEndTime = 0;
+let bonusSpeedActive = false;
+let bonusSpeedEndTime = 0;
+let bonusSlowActive = false;
+let bonusSlowEndTime = 0;
+let bonusNoTrailActive = false;
+let bonusNoTrailEndTime = 0;
 
-// Настройки бонусов
 const BONUS_CONFIG = {
     speed: {
         name: 'Ускорение',
         color: '#00ff00',
         symbol: '⚡',
-        duration: 5000,        // 5 секунд
+        duration: 5000,
         effect: () => {
-            speedActive = true;
-            speedEndTime = Date.now() + BONUS_CONFIG.speed.duration;
+            bonusSpeedActive = true;
+            bonusSpeedEndTime = Date.now() + BONUS_CONFIG.speed.duration;
             showMessage('⚡ СКОРОСТЬ УВЕЛИЧЕНА!');
         }
     },
@@ -30,10 +28,10 @@ const BONUS_CONFIG = {
         name: 'Щит',
         color: '#0088ff',
         symbol: '🛡️',
-        duration: 8000,        // 8 секунд
+        duration: 8000,
         effect: () => {
-            shieldActive = true;
-            shieldEndTime = Date.now() + BONUS_CONFIG.shield.duration;
+            bonusShieldActive = true;
+            bonusShieldEndTime = Date.now() + BONUS_CONFIG.shield.duration;
             showMessage('🛡️ ЩИТ АКТИВИРОВАН! (Полная неуязвимость)');
         }
     },
@@ -41,10 +39,10 @@ const BONUS_CONFIG = {
         name: 'Замедление врагов',
         color: '#ff6600',
         symbol: '🐢',
-        duration: 6000,        // 6 секунд
+        duration: 6000,
         effect: () => {
-            slowActive = true;
-            slowEndTime = Date.now() + BONUS_CONFIG.slowEnemies.duration;
+            bonusSlowActive = true;
+            bonusSlowEndTime = Date.now() + BONUS_CONFIG.slowEnemies.duration;
             showMessage('🐢 ВРАГИ ЗАМЕДЛЕНЫ!');
         }
     },
@@ -52,11 +50,10 @@ const BONUS_CONFIG = {
         name: 'Стереть след врага',
         color: '#aa00ff',
         symbol: '✂️',
-        duration: 7000,        // 7 секунд
+        duration: 7000,
         effect: () => {
-            noTrailActive = true;
-            noTrailEndTime = Date.now() + BONUS_CONFIG.noTrail.duration;
-            // Очищаем следы врагов
+            bonusNoTrailActive = true;
+            bonusNoTrailEndTime = Date.now() + BONUS_CONFIG.noTrail.duration;
             if (opponentType === 'survival') {
                 for (let e of survivalEnemies) {
                     e.trail = [{ x: e.x, y: e.y }];
@@ -72,6 +69,7 @@ const BONUS_CONFIG = {
 
 function spawnBonus() {
     if (bonuses.length >= 3) return;
+    if (typeof WIDTH === 'undefined' || typeof HEIGHT === 'undefined') return;
     
     const types = ['speed', 'shield', 'slowEnemies', 'noTrail'];
     const type = types[Math.floor(Math.random() * types.length)];
@@ -83,16 +81,12 @@ function spawnBonus() {
         x = Math.floor(Math.random() * WIDTH);
         y = Math.floor(Math.random() * HEIGHT);
         free = true;
-        
-        // Не спавнить на игроках
         for (let p of players) {
             if (p.alive && p.x === x && p.y === y) free = false;
         }
-        // Не спавнить на врагах
         for (let e of survivalEnemies) {
             if (e.alive && e.x === x && e.y === y) free = false;
         }
-        // Не спавнить на других бонусах
         for (let b of bonuses) {
             if (b.x === x && b.y === y) free = false;
         }
@@ -103,7 +97,7 @@ function spawnBonus() {
         bonuses.push({ 
             x: x, y: y, 
             type: type, 
-            life: 300,  // 300 кадров ~5 секунд на поле
+            life: 300,
             color: BONUS_CONFIG[type].color,
             symbol: BONUS_CONFIG[type].symbol
         });
@@ -111,7 +105,6 @@ function spawnBonus() {
 }
 
 function updateBonuses() {
-    // Обновление таймеров бонусов на поле
     for (let i = 0; i < bonuses.length; i++) {
         bonuses[i].life--;
         if (bonuses[i].life <= 0) {
@@ -120,7 +113,6 @@ function updateBonuses() {
         }
     }
     
-    // Спавн новых бонусов (каждые ~5 секунд)
     bonusTimer++;
     if (bonusTimer > 70 && bonuses.length < 3) {
         bonusTimer = 0;
@@ -128,25 +120,20 @@ function updateBonuses() {
     }
     
     const now = Date.now();
-    
-    // Сброс эффектов по таймеру
-    if (speedActive && now > speedEndTime) {
-        speedActive = false;
+    if (bonusSpeedActive && now > bonusSpeedEndTime) {
+        bonusSpeedActive = false;
         showMessage('⚡ Ускорение закончилось');
     }
-    
-    if (shieldActive && now > shieldEndTime) {
-        shieldActive = false;
+    if (bonusShieldActive && now > bonusShieldEndTime) {
+        bonusShieldActive = false;
         showMessage('🛡️ Щит исчез!');
     }
-    
-    if (slowActive && now > slowEndTime) {
-        slowActive = false;
+    if (bonusSlowActive && now > bonusSlowEndTime) {
+        bonusSlowActive = false;
         showMessage('🐢 Враги ускорились!');
     }
-    
-    if (noTrailActive && now > noTrailEndTime) {
-        noTrailActive = false;
+    if (bonusNoTrailActive && now > bonusNoTrailEndTime) {
+        bonusNoTrailActive = false;
         showMessage('✂️ У врагов снова появился след!');
     }
 }
@@ -154,49 +141,24 @@ function updateBonuses() {
 function collectBonus(bonus, player) {
     const type = bonus.type;
     const config = BONUS_CONFIG[type];
-    
     showMessage(`✨ ${config.name}! ${config.symbol}`);
-    config.effect();  // ← применяем эффект
-    
-    // Специальная логика для ножниц (дополнительная очистка)
-    if (type === 'noTrail') {
-        // Очищаем следы врагов
-        if (opponentType === 'survival') {
-            for (let e of survivalEnemies) {
-                e.trail = [{ x: e.x, y: e.y }];
-            }
-        }
-        if (opponentType === 'ai' && players[1] && players[1].alive) {
-            players[1].trail = [{ x: players[1].x, y: players[1].y }];
-        }
-    }
+    config.effect();
 }
 
 function drawBonuses() {
+    // ===== ЭТУ ФУНКЦИЮ МЫ ПОТОМ ИСПРАВИМ =====
+    // Сейчас она рисует бонусы, но они не видны из-за прозрачности
     for (let b of bonuses) {
-        // Яркий фон с чёткой границей
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = b.color;
+        const pulse = Math.sin(Date.now() * 0.008) * 0.3 + 0.7;
         ctx.fillStyle = b.color;
-        ctx.globalAlpha = 1.0; // ← Теперь полностью непрозрачные!
+        ctx.globalAlpha = pulse;
         ctx.fillRect(b.x * CELL_SIZE, b.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         ctx.globalAlpha = 1;
-        
-        // Символ (контрастный)
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#ffffff'; // Белый символ для контраста
-        ctx.font = `bold ${CELL_SIZE-4}px monospace`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(b.symbol, b.x * CELL_SIZE + CELL_SIZE/2, b.y * CELL_SIZE + CELL_SIZE/2);
-        
-        // Белая обводка для чёткости
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(b.x * CELL_SIZE, b.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        ctx.fillStyle = '#000000';
+        ctx.font = `${CELL_SIZE-4}px monospace`;
+        ctx.fillText(b.symbol, b.x * CELL_SIZE + 3, b.y * CELL_SIZE + CELL_SIZE - 5);
     }
     
-    // Индикаторы эффектов (оставляем как есть)
     let offsetX = 10;
     let offsetY = 25;
     const now = Date.now();
@@ -248,8 +210,8 @@ function drawBonuses() {
 function resetBonuses() {
     bonuses = [];
     bonusTimer = 0;
-    shieldActive = false;
-    speedActive = false;
-    slowActive = false;
-    noTrailActive = false;
+    bonusShieldActive = false;
+    bonusSpeedActive = false;
+    bonusSlowActive = false;
+    bonusNoTrailActive = false;
 }
