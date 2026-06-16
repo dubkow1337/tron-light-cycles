@@ -136,7 +136,6 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // БОНУСЫ (ОТРИСОВКА) — ЭТОТ БЛОК НАДО БУДЕТ ПОПРАВИТЬ
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
