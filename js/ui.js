@@ -14,21 +14,19 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// ===== НОВАЯ ВЕРСИЯ: сбрасываем ТОЛЬКО в своей группе =====
+// ===== ГЛАВНАЯ ФУНКЦИЯ: подсветка ТОЛЬКО одной кнопки в группе =====
 function setMenuActive(groupSelector, activeId) {
-    // Находим ВСЕ кнопки в группе (по селектору)
+    // Находим ВСЕ кнопки в этой группе
     const buttons = document.querySelectorAll(groupSelector);
-    // Убираем класс active у всех кнопок в этой группе
+    // Делаем ВСЕ тусклыми (убираем класс active)
     buttons.forEach(btn => btn.classList.remove('active'));
-    // Добавляем класс active только нужной кнопке
+    // Делаем ЯРКОЙ только ту, на которую нажали
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
 function setupEventListeners() {
-    // ===== ГЛАВНОЕ МЕНЮ =====
-    
-    // --- ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) ---
+    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -55,7 +53,7 @@ function setupEventListeners() {
         });
     }
     
-    // --- ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) ---
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
@@ -77,7 +75,7 @@ function setupEventListeners() {
         });
     }
     
-    // --- КНОПКА ИГРАТЬ ---
+    // ===== КНОПКА ИГРАТЬ =====
     const playBtn = document.getElementById('menuPlayBtn');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
@@ -87,7 +85,7 @@ function setupEventListeners() {
         });
     }
     
-    // --- ЗВУК В МЕНЮ ---
+    // ===== ЗВУК =====
     const soundBtn = document.getElementById('menuSoundToggle');
     if (soundBtn) {
         soundBtn.addEventListener('click', () => {
@@ -95,7 +93,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ИГРОВОЙ ЭКРАН =====
+    // ===== ИГРОВОЙ ЭКРАН: КНОПКА НАЗАД =====
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -115,7 +113,6 @@ function setupEventListeners() {
     
     // ===== КЛАВИАТУРА =====
     document.addEventListener('keydown', (e) => {
-        // ESC — пауза в игре
         if (e.key === 'Escape') {
             const gameScreen = document.getElementById('gameScreen');
             if (gameScreen && gameScreen.classList.contains('active')) {
@@ -127,7 +124,6 @@ function setupEventListeners() {
             }
         }
         
-        // Управление в игре
         const gameScreen = document.getElementById('gameScreen');
         if (!gameScreen || !gameScreen.classList.contains('active')) return;
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
