@@ -6,7 +6,7 @@ function init() {
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
     
-    // Делаем глобальными
+    // Убеждаемся, что глобальные переменные доступны
     window.canvas = canvas;
     window.ctx = ctx;
     
@@ -16,14 +16,12 @@ function init() {
     
     // Настройка отображения счёта
     const recordDisplay = document.getElementById('recordDisplay');
-    if (recordDisplay && typeof bestRecord !== 'undefined') {
+    if (recordDisplay && bestRecord) {
         recordDisplay.innerText = bestRecord;
     }
     
     // Стартовое сообщение
-    if (typeof showMessage === 'function') {
-        showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
-    }
+    showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
     
     // Начальная отрисовка
     if (typeof draw === 'function') draw();
