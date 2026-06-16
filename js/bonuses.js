@@ -1,8 +1,9 @@
 // ========== БОНУСЫ ==========
 
-// 1. Объявление переменных (совместимо с script.js)
 let bonuses = [];
 let bonusTimer = 0;
+
+// Флаги эффектов
 let bonusShieldActive = false;
 let bonusShieldEndTime = 0;
 let bonusSpeedActive = false;
@@ -12,10 +13,16 @@ let bonusSlowEndTime = 0;
 let bonusNoTrailActive = false;
 let bonusNoTrailEndTime = 0;
 
-// 2. Функция спавна бонусов
+// Конфиг бонусов
+const BONUS_TYPES = {
+    speed: { color: '#00ff00', symbol: '⚡', duration: 5000 },
+    shield: { color: '#0088ff', symbol: '🛡️', duration: 8000 },
+    slowEnemies: { color: '#ff6600', symbol: '🐢', duration: 6000 },
+    noTrail: { color: '#aa00ff', symbol: '✂️', duration: 7000 }
+};
+
 function spawnBonus() {
     if (bonuses.length >= 3) return;
-    if (typeof WIDTH === 'undefined' || typeof HEIGHT === 'undefined') return;
     
     const types = ['speed', 'shield', 'slowEnemies', 'noTrail'];
     const type = types[Math.floor(Math.random() * types.length)];
@@ -40,31 +47,17 @@ function spawnBonus() {
     }
     
     if (free) {
-        const colors = {
-            speed: '#00ff00',
-            shield: '#0088ff',
-            slowEnemies: '#ff6600',
-            noTrail: '#aa00ff'
-        };
-        const symbols = {
-            speed: '⚡',
-            shield: '🛡️',
-            slowEnemies: '🐢',
-            noTrail: '✂️'
-        };
         bonuses.push({ 
-            x: x, y: y, 
-            type: type, 
+            x, y, type, 
             life: 300,
-            color: colors[type],
-            symbol: symbols[type]
+            color: BONUS_TYPES[type].color,
+            symbol: BONUS_TYPES[type].symbol
         });
     }
 }
 
-// 3. Обновление бонусов (вызывается в updateGame)
 function updateBonuses() {
-    // Удаление просроченных бонусов
+    // Удаление старых
     for (let i = 0; i < bonuses.length; i++) {
         bonuses[i].life--;
         if (bonuses[i].life <= 0) {
@@ -80,7 +73,7 @@ function updateBonuses() {
         spawnBonus();
     }
     
-    // Сброс эффектов по таймеру
+    // Сброс эффектов
     const now = Date.now();
     if (bonusSpeedActive && now > bonusSpeedEndTime) {
         bonusSpeedActive = false;
@@ -100,30 +93,30 @@ function updateBonuses() {
     }
 }
 
-// 4. Сбор бонуса игроком
 function collectBonus(bonus, player) {
     const now = Date.now();
     const type = bonus.type;
+    const config = BONUS_TYPES[type];
     
     switch(type) {
         case 'speed':
             bonusSpeedActive = true;
-            bonusSpeedEndTime = now + 5000;
+            bonusSpeedEndTime = now + config.duration;
             showMessage('⚡ СКОРОСТЬ УВЕЛИЧЕНА!');
             break;
         case 'shield':
             bonusShieldActive = true;
-            bonusShieldEndTime = now + 8000;
+            bonusShieldEndTime = now + config.duration;
             showMessage('🛡️ ЩИТ АКТИВИРОВАН! (Неуязвимость)');
             break;
         case 'slowEnemies':
             bonusSlowActive = true;
-            bonusSlowEndTime = now + 6000;
+            bonusSlowEndTime = now + config.duration;
             showMessage('🐢 ВРАГИ ЗАМЕДЛЕНЫ!');
             break;
         case 'noTrail':
             bonusNoTrailActive = true;
-            bonusNoTrailEndTime = now + 7000;
+            bonusNoTrailEndTime = now + config.duration;
             if (opponentType === 'survival') {
                 for (let e of survivalEnemies) {
                     e.trail = [{ x: e.x, y: e.y }];
@@ -137,9 +130,8 @@ function collectBonus(bonus, player) {
     }
 }
 
-// 5. Отрисовка бонусов (вызывается в draw)
 function drawBonuses() {
-    // Рисуем бонусы на поле
+    // Бонусы на поле
     for (let b of bonuses) {
         const pulse = Math.sin(Date.now() * 0.008) * 0.3 + 0.7;
         ctx.fillStyle = b.color;
@@ -151,7 +143,7 @@ function drawBonuses() {
         ctx.fillText(b.symbol, b.x * CELL_SIZE + 3, b.y * CELL_SIZE + CELL_SIZE - 5);
     }
     
-    // Индикаторы эффектов (левый верхний угол)
+    // Индикаторы
     let offsetX = 10;
     let offsetY = 25;
     const now = Date.now();
@@ -197,7 +189,6 @@ function drawBonuses() {
     }
 }
 
-// 6. Сброс бонусов при новом раунде
 function resetBonuses() {
     bonuses = [];
     bonusTimer = 0;
@@ -206,69 +197,3 @@ function resetBonuses() {
     bonusSlowActive = false;
     bonusNoTrailActive = false;
 }
-
-// 7. ПЕРЕХВАТ ФУНКЦИЙ ИЗ script.js (внедрение бонусов без правок)
-
-// Сохраняем оригинальные функции
-const _origInitGame = initGame;
-const _origUpdateGame = updateGame;
-const _origUpdateSurvival = updateSurvival;
-const _origDraw = draw;
-const _origResetGame = resetGame;
-
-// Переопределяем initGame
-initGame = function() {
-    resetBonuses();
-    _origInitGame();
-};
-
-// Переопределяем updateGame
-updateGame = function() {
-    _origUpdateGame();
-    
-    // Если игра активна, обновляем бонусы и проверяем сбор
-    if (gameActive) {
-        updateBonuses();
-        
-        // Сбор бонусов игроком (синим)
-        for (let i = 0; i < bonuses.length; i++) {
-            let b = bonuses[i];
-            if (players[0].alive && players[0].x === b.x && players[0].y === b.y) {
-                collectBonus(b, players[0]);
-                bonuses.splice(i, 1);
-                i--;
-            }
-        }
-    }
-};
-
-// Переопределяем updateSurvival (добавляем эффекты)
-updateSurvival = function() {
-    // Сохраняем оригинальную логику
-    _origUpdateSurvival();
-    
-    // Дополнительные эффекты для врагов
-    // (замедление уже в оригинале, здесь можно добавить что-то ещё)
-};
-
-// Переопределяем draw (добавляем отрисовку бонусов)
-draw = function() {
-    _origDraw();
-    
-    // Рисуем бонусы поверх всего
-    drawBonuses();
-};
-
-// Переопределяем resetGame (чтобы сбрасывать бонусы)
-resetGame = function() {
-    resetBonuses();
-    _origResetGame();
-};
-
-// 8. Добавляем поддержку щита в проверку столкновений
-// Переопределяем updateGame для щита (полная неуязвимость)
-// Это уже сделано выше, но добавим дополнительную проверку
-const _origUpdateGameCollision = updateGame;
-
-// Запускаем бонусы после загрузки страницы
-console.log('✅ Бонусы успешно загружены!');
