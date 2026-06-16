@@ -8,8 +8,12 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
-// ===== БОНУСЫ (флаги из bonuses.js) =====
-// Эти флаги устанавливаются в bonuses.js и используются здесь
+// crashEffect из render.js
+if (typeof crashEffect === 'undefined') {
+    var crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+}
+
+// Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
 let bonusSlowActive = false;
@@ -27,7 +31,6 @@ function showVictory(name) {
         if (name === 'Синий') tournamentScore[0]++;
         else if (name === 'Оранжевый') tournamentScore[1]++;
         updateUI();
-        
         if (tournamentScore[0] >= tournamentTarget || tournamentScore[1] >= tournamentTarget) {
             let finalWinner = tournamentScore[0] >= tournamentTarget ? 'Синий' : 'Оранжевый';
             showMessage(`🏆 ТУРНИР ВЫИГРАЛ ${finalWinner.toUpperCase()}! 🏆`);
@@ -52,10 +55,8 @@ function showVictory(name) {
 function updateGame() {
     if (!gameActive) return;
     
-    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
-        
         p.x += p.dirX;
         p.y += p.dirY;
         p.trail.push({ x: p.x, y: p.y });
@@ -63,19 +64,16 @@ function updateGame() {
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
     }
     
-    // ===== ОБНОВЛЕНИЕ РЕЖИМОВ =====
     if (opponentType === 'survival') {
         if (typeof updateSurvival === 'function') updateSurvival();
     } else {
         if (typeof aiMove === 'function') aiMove();
     }
     
-    // ===== ОБНОВЛЕНИЕ БОНУСОВ =====
     if (typeof updateBonuses === 'function') {
         updateBonuses();
     }
     
-    // ===== СБОР БОНУСОВ =====
     if (typeof bonuses !== 'undefined') {
         for (let i = 0; i < bonuses.length; i++) {
             let b = bonuses[i];
@@ -91,16 +89,13 @@ function updateGame() {
     
     if (typeof updateParticles === 'function') updateParticles();
     
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
     for (let p of players) {
         if (!p.alive) continue;
         
-        // ===== ЩИТ: ПОЛНАЯ НЕУЯЗВИМОСТЬ =====
         if (bonusShieldActive && p === players[0]) {
-            continue;  // ← ПРОПУСКАЕМ ВСЕ ПРОВЕРКИ
+            continue;
         }
         
-        // 1. Столкновение с границами
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
@@ -108,7 +103,6 @@ function updateGame() {
             continue;
         }
         
-        // 2. Столкновение со своим следом
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -119,7 +113,6 @@ function updateGame() {
         }
         if (!p.alive) continue;
         
-        // 3. Столкновение со следами других игроков
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -140,7 +133,6 @@ function updateGame() {
             if (!p.alive) break;
         }
         
-        // 4. Столкновение со следами врагов (режим выживания)
         if (!p.alive) continue;
         if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
@@ -165,7 +157,6 @@ function updateGame() {
         }
     }
     
-    // ===== ОПРЕДЕЛЕНИЕ ПОБЕДИТЕЛЯ =====
     const alivePlayers = players.filter(p => p.alive);
     if (alivePlayers.length === 1 && opponentType !== 'survival') {
         let winnerIdx = players.findIndex(p => p.alive);
@@ -200,7 +191,7 @@ function updateGame() {
 
 function initGame() {
     if (typeof resetPlayers === 'function') resetPlayers();
-    if (typeof resetBonuses === 'function') resetBonuses(); // ← СБРОС БОНУСОВ
+    if (typeof resetBonuses === 'function') resetBonuses();
     
     if (opponentType === 'survival') {
         if (typeof spawnSurvivalEnemies === 'function') spawnSurvivalEnemies();
