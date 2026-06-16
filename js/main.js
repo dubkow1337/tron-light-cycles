@@ -20,7 +20,6 @@ function init() {
         showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
     }
     
-    // Ждём загрузки draw
     function waitForDraw() {
         if (typeof draw === 'function') {
             draw();
