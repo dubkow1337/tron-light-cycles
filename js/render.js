@@ -6,9 +6,7 @@ let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-const CELL_SIZE = 16;
-const WIDTH = 75;
-const HEIGHT = 50;
+// КОНСТАНТЫ БЕРУТСЯ ИЗ player.js (НЕ ОБЪЯВЛЯЕМ ЗДЕСЬ!)
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -63,16 +61,13 @@ function drawParticles() {
     ctx.globalAlpha = 1;
 }
 
-// ===== ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ =====
 function draw() {
     if (!ctx) return;
     
-    // 1. ФОН
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
-    // 2. СЕТКА
     ctx.strokeStyle = '#0f3f3a';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
@@ -86,7 +81,6 @@ function draw() {
         ctx.stroke();
     }
     
-    // 3. СЛЕДЫ ИГРОКОВ
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.trail && p.trail.length >= 2) {
@@ -106,7 +100,6 @@ function draw() {
         }
     }
     
-    // 4. СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ)
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
             if (e.trail && e.trail.length >= 2) {
@@ -124,18 +117,14 @@ function draw() {
                 ctx.stroke();
             }
         }
-        
-        // Враги (квадраты)
         for (let e of survivalEnemies) {
             ctx.fillStyle = e.color;
             ctx.fillRect(e.x * CELL_SIZE, e.y * CELL_SIZE, CELL_SIZE - 4, CELL_SIZE - 4);
         }
     }
     
-    // 5. ЧАСТИЦЫ
     drawParticles();
     
-    // 6. ЭФФЕКТ СТОЛКНОВЕНИЯ
     if (crashEffect.active) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ffffff';
@@ -145,37 +134,31 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // 7. БОНУСЫ (ЕСЛИ ЕСТЬ)
+    // БОНУСЫ (ЕСЛИ ЕСТЬ)
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
     
-    // 8. МОТОЦИКЛЫ (ТРЕУГОЛЬНИКИ)
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.alive) {
                 const cx = p.x * CELL_SIZE + CELL_SIZE / 2;
                 const cy = p.y * CELL_SIZE + CELL_SIZE / 2;
-                
                 ctx.save();
                 ctx.translate(cx, cy);
-                
                 if (p.dirX === 1) ctx.rotate(0);
                 else if (p.dirX === -1) ctx.rotate(Math.PI);
                 else if (p.dirY === -1) ctx.rotate(-Math.PI / 2);
                 else if (p.dirY === 1) ctx.rotate(Math.PI / 2);
-                
                 ctx.shadowBlur = 12 + 3 * Math.sin(Date.now() * 0.01);
                 ctx.shadowColor = p.color;
                 ctx.fillStyle = p.color;
-                
                 ctx.beginPath();
                 ctx.moveTo(10, 0);
                 ctx.lineTo(-5, -7);
                 ctx.lineTo(-5, 7);
                 ctx.closePath();
                 ctx.fill();
-                
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.moveTo(5, 0);
@@ -183,13 +166,11 @@ function draw() {
                 ctx.lineTo(-2, 3);
                 ctx.closePath();
                 ctx.fill();
-                
                 ctx.restore();
             }
         }
     }
     
-    // 9. ОБРАТНЫЙ ОТСЧЁТ
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
@@ -207,12 +188,10 @@ function draw() {
         }
     }
     
-    // 10. ПАУЗА
     if (paused && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
         ctx.fillStyle = '#ffffff';
         ctx.fillText('⏸ ПАУЗА', canvas.width/2 - 70, canvas.height/2);
     }
-    
     ctx.shadowBlur = 0;
 }
