@@ -63,7 +63,7 @@ body {
 .menu-container {
     position: relative;
     z-index: 2;
-    background: rgba(0, 0, 0, 0.3);        /* Полупрозрачный чёрный */
+    background: rgba(0, 0, 0, 0.2);        /* Полупрозрачный чёрный */
     backdrop-filter: blur(20px);            /* Сильное размытие фона */
     -webkit-backdrop-filter: blur(20px);    /* Для Safari */
     border: 1px solid rgba(0, 255, 255, 0.2); /* Тонкая голубая рамка */
