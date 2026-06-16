@@ -45,9 +45,18 @@ function showVictory(name) {
 function updateGame() {
     if (!gameActive) return;
     
-    // Движение игроков
+    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
+        
+        // Ускорение для игрока
+        let speedBonus = 0;
+        if (bonusSpeedActive && p === players[0]) {
+            speedBonus = -35; // быстрее
+        }
+        let currentMoveInterval = Math.max(35, MOVE_INTERVAL + speedBonus);
+        
+        // Движение
         p.x += p.dirX;
         p.y += p.dirY;
         p.trail.push({ x: p.x, y: p.y });
@@ -55,20 +64,44 @@ function updateGame() {
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
     }
     
-    // Обновление режимов
+    // ===== ОБНОВЛЕНИЕ РЕЖИМОВ =====
     if (opponentType === 'survival') {
         if (typeof updateSurvival === 'function') updateSurvival();
     } else {
         if (typeof aiMove === 'function') aiMove();
     }
     
+    // ===== ОБНОВЛЕНИЕ БОНУСОВ =====
+    if (typeof updateBonuses === 'function') {
+        updateBonuses();
+    }
+    
+    // ===== СБОР БОНУСОВ =====
+    if (typeof bonuses !== 'undefined') {
+        for (let i = 0; i < bonuses.length; i++) {
+            let b = bonuses[i];
+            if (players[0].alive && players[0].x === b.x && players[0].y === b.y) {
+                if (typeof collectBonus === 'function') {
+                    collectBonus(b, players[0]);
+                }
+                bonuses.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
     if (typeof updateParticles === 'function') updateParticles();
     
-    // Проверка столкновений
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
     for (let p of players) {
         if (!p.alive) continue;
         
-        // Границы
+        // ===== ЩИТ: ПОЛНАЯ НЕУЯЗВИМОСТЬ =====
+        if (bonusShieldActive && p === players[0]) {
+            continue;  // ← ПРОПУСКАЕМ ВСЕ ПРОВЕРКИ
+        }
+        
+        // 1. Столкновение с границами
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
@@ -76,7 +109,7 @@ function updateGame() {
             continue;
         }
         
-        // Свой след
+        // 2. Столкновение со своим следом
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -87,7 +120,7 @@ function updateGame() {
         }
         if (!p.alive) continue;
         
-        // След других игроков
+        // 3. Столкновение со следами других игроков
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -108,7 +141,7 @@ function updateGame() {
             if (!p.alive) break;
         }
         
-        // След врагов (режим выживания)
+        // 4. Столкновение со следами врагов (режим выживания)
         if (!p.alive) continue;
         if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
@@ -133,7 +166,7 @@ function updateGame() {
         }
     }
     
-    // Определение победителя
+    // ===== ОПРЕДЕЛЕНИЕ ПОБЕДИТЕЛЯ =====
     const alivePlayers = players.filter(p => p.alive);
     if (alivePlayers.length === 1 && opponentType !== 'survival') {
         let winnerIdx = players.findIndex(p => p.alive);
@@ -168,6 +201,7 @@ function updateGame() {
 
 function initGame() {
     if (typeof resetPlayers === 'function') resetPlayers();
+    if (typeof resetBonuses === 'function') resetBonuses(); // ← СБРОС БОНУСОВ
     
     if (opponentType === 'survival') {
         if (typeof spawnSurvivalEnemies === 'function') spawnSurvivalEnemies();
