@@ -173,61 +173,72 @@ function collectBonus(bonus, player) {
 }
 
 function drawBonuses() {
-    // Отрисовка бонусов на поле
     for (let b of bonuses) {
-        const pulse = Math.sin(Date.now() * 0.008) * 0.3 + 0.7;
+        // Яркий фон с чёткой границей
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = b.color;
         ctx.fillStyle = b.color;
-        ctx.globalAlpha = pulse;
+        ctx.globalAlpha = 1.0; // ← Теперь полностью непрозрачные!
         ctx.fillRect(b.x * CELL_SIZE, b.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         ctx.globalAlpha = 1;
-        ctx.fillStyle = '#000000';
-        ctx.font = `${CELL_SIZE-4}px monospace`;
-        ctx.fillText(b.symbol, b.x * CELL_SIZE + 3, b.y * CELL_SIZE + CELL_SIZE - 5);
+        
+        // Символ (контрастный)
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff'; // Белый символ для контраста
+        ctx.font = `bold ${CELL_SIZE-4}px monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(b.symbol, b.x * CELL_SIZE + CELL_SIZE/2, b.y * CELL_SIZE + CELL_SIZE/2);
+        
+        // Белая обводка для чёткости
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(b.x * CELL_SIZE, b.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
     }
     
-    // Индикаторы эффектов (в левом верхнем углу)
+    // Индикаторы эффектов (оставляем как есть)
     let offsetX = 10;
     let offsetY = 25;
     const now = Date.now();
     
-    if (speedActive) {
+    if (bonusSpeedActive) {
         ctx.fillStyle = '#00ff00';
         ctx.font = 'bold 14px monospace';
         ctx.fillText('⚡', offsetX, offsetY);
-        const remaining = Math.max(0, Math.ceil((speedEndTime - now) / 1000));
+        const remaining = Math.max(0, Math.ceil((bonusSpeedEndTime - now) / 1000));
         ctx.fillStyle = '#ffffff';
         ctx.font = '10px monospace';
         ctx.fillText(`${remaining}s`, offsetX + 20, offsetY);
         offsetX += 50;
     }
     
-    if (shieldActive) {
+    if (bonusShieldActive) {
         ctx.fillStyle = '#0088ff';
         ctx.font = 'bold 14px monospace';
         ctx.fillText('🛡️', offsetX, offsetY);
-        const remaining = Math.max(0, Math.ceil((shieldEndTime - now) / 1000));
+        const remaining = Math.max(0, Math.ceil((bonusShieldEndTime - now) / 1000));
         ctx.fillStyle = '#ffffff';
         ctx.font = '10px monospace';
         ctx.fillText(`${remaining}s`, offsetX + 25, offsetY);
         offsetX += 50;
     }
     
-    if (slowActive) {
+    if (bonusSlowActive) {
         ctx.fillStyle = '#ff6600';
         ctx.font = 'bold 14px monospace';
         ctx.fillText('🐢', offsetX, offsetY);
-        const remaining = Math.max(0, Math.ceil((slowEndTime - now) / 1000));
+        const remaining = Math.max(0, Math.ceil((bonusSlowEndTime - now) / 1000));
         ctx.fillStyle = '#ffffff';
         ctx.font = '10px monospace';
         ctx.fillText(`${remaining}s`, offsetX + 20, offsetY);
         offsetX += 50;
     }
     
-    if (noTrailActive) {
+    if (bonusNoTrailActive) {
         ctx.fillStyle = '#aa00ff';
         ctx.font = 'bold 14px monospace';
         ctx.fillText('✂️', offsetX, offsetY);
-        const remaining = Math.max(0, Math.ceil((noTrailEndTime - now) / 1000));
+        const remaining = Math.max(0, Math.ceil((bonusNoTrailEndTime - now) / 1000));
         ctx.fillStyle = '#ffffff';
         ctx.font = '10px monospace';
         ctx.fillText(`${remaining}s`, offsetX + 20, offsetY);
