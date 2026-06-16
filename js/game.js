@@ -1,7 +1,5 @@
 // ========== ГЛАВНАЯ ЛОГИКА ИГРЫ ==========
 
-// crashEffect объявлен в render.js, НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
-
 let gameActive = true;
 let gameLoop = null;
 let countdownActive = false;
@@ -10,7 +8,7 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
-// Флаги бонусов (если есть)
+// Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
 let bonusSlowActive = false;
@@ -43,9 +41,14 @@ function showVictory(name) {
     if (opponentType === 'survival' && currentSteps > bestRecord) {
         bestRecord = currentSteps;
         localStorage.setItem('tronRecord', bestRecord);
-        const recordDisplay = document.getElementById('recordDisplay');
+        const recordDisplay = document.getElementById('menuRecordDisplay');
         if (recordDisplay) recordDisplay.innerText = bestRecord;
         showMessage(`🏆 НОВЫЙ РЕКОРД: ${bestRecord} шагов!`);
+    }
+    
+    // Голос ПОБЕДЫ (оставляем для эпичности)
+    if (typeof speakVictory === 'function') {
+        speakVictory(`${name} победил!`);
     }
 }
 
@@ -72,7 +75,7 @@ function updateGame() {
     for (let p of players) {
         if (!p.alive) continue;
         
-        // ЩИТ
+        // ЩИТ (полная неуязвимость)
         if (bonusShieldActive && p === players[0]) {
             continue;
         }
@@ -193,17 +196,17 @@ function initGame() {
         if (countdownValue === 2) {
             const msgDiv = document.getElementById('gameMessage');
             if (msgDiv) msgDiv.textContent = '2...';
-            if (typeof speak === 'function') speak("Два");
+            if (typeof countdownBeep === 'function') countdownBeep(2);
             if (typeof draw === 'function') draw();
         } else if (countdownValue === 1) {
             const msgDiv = document.getElementById('gameMessage');
             if (msgDiv) msgDiv.textContent = '1...';
-            if (typeof speak === 'function') speak("Один");
+            if (typeof countdownBeep === 'function') countdownBeep(1);
             if (typeof draw === 'function') draw();
         } else if (countdownValue === 0) {
             const msgDiv = document.getElementById('gameMessage');
-            if (msgDiv) msgDiv.textContent = 'ВПЕРЁД!';
-            if (typeof speak === 'function') speak("Вперёд");
+            if (msgDiv) msgDiv.textContent = 'GO!';
+            if (typeof countdownBeep === 'function') countdownBeep(0);
             if (typeof draw === 'function') draw();
         } else if (countdownValue < 0) {
             clearInterval(countdownInterval);
