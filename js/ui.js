@@ -7,26 +7,30 @@ let tournamentActive = false;
 let tournamentScore = [0, 0];
 let tournamentTarget = 3;
 
-// Переключение экранов
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add('active');
 }
 
-// ===== ГЛАВНАЯ ФУНКЦИЯ: подсветка ТОЛЬКО одной кнопки в группе =====
+// ===== ГАРАНТИРОВАННЫЙ СБРОС ВСЕХ КНОПОК =====
 function setMenuActive(groupSelector, activeId) {
-    // Находим ВСЕ кнопки в этой группе
-    const buttons = document.querySelectorAll(groupSelector);
-    // Делаем ВСЕ тусклыми (убираем класс active)
-    buttons.forEach(btn => btn.classList.remove('active'));
-    // Делаем ЯРКОЙ только ту, на которую нажали
+    // 1. Сбрасываем ВСЕ кнопки с классом .menu-btn (без разбора групп)
+    document.querySelectorAll('.menu-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // 2. Активируем только нужную
     const activeBtn = document.getElementById(activeId);
-    if (activeBtn) activeBtn.classList.add('active');
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    } else {
+        console.error('Кнопка с id', activeId, 'не найдена!');
+    }
 }
 
 function setupEventListeners() {
-    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
+    // ===== ГРУППА 1: ПРОТИВНИК =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -53,7 +57,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
@@ -75,7 +79,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== КНОПКА ИГРАТЬ =====
+    // ===== ОСТАЛЬНЫЕ КНОПКИ =====
     const playBtn = document.getElementById('menuPlayBtn');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
@@ -85,7 +89,6 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ЗВУК =====
     const soundBtn = document.getElementById('menuSoundToggle');
     if (soundBtn) {
         soundBtn.addEventListener('click', () => {
@@ -93,7 +96,6 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ИГРОВОЙ ЭКРАН: КНОПКА НАЗАД =====
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -186,7 +188,6 @@ function showMessage(msg) {
     if (msgDiv) msgDiv.innerText = msg;
 }
 
-// Для совместимости со старым кодом
 function setActiveButton(group, activeId) {
     const buttons = document.querySelectorAll(group);
     buttons.forEach(btn => btn.classList.remove('active'));
