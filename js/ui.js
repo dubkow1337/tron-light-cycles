@@ -14,19 +14,19 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// Переключение активной кнопки в меню
-function setMenuActive(group, activeId) {
-    const container = document.getElementById(group);
-    if (!container) return;
-    const buttons = container.querySelectorAll('.menu-btn');
+// Переключение активной кнопки в группе
+function setMenuActive(groupSelector, activeId) {
+    // Находим все кнопки в группе (по селектору)
+    const buttons = document.querySelectorAll(groupSelector);
     buttons.forEach(btn => btn.classList.remove('active'));
+    // Активируем нужную
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
 
 function setupEventListeners() {
     // ===== ГЛАВНОЕ МЕНЮ =====
-    // Выбор противника
+    // Выбор противника (группа .opponent-btn)
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -34,33 +34,33 @@ function setupEventListeners() {
     if (btn2p) {
         btn2p.addEventListener('click', () => {
             opponentType = '2p';
-            setMenuActive('menuOpponent2p', 'menuOpponent2p');
+            setMenuActive('.opponent-btn', 'menuOpponent2p');
             showMessage('Противник: 2 игрока');
         });
     }
     if (btnAI) {
         btnAI.addEventListener('click', () => {
             opponentType = 'ai';
-            setMenuActive('menuOpponentAI', 'menuOpponentAI');
+            setMenuActive('.opponent-btn', 'menuOpponentAI');
             showMessage('Противник: VS AI');
         });
     }
     if (btnSurvival) {
         btnSurvival.addEventListener('click', () => {
             opponentType = 'survival';
-            setMenuActive('menuOpponentSurvival', 'menuOpponentSurvival');
+            setMenuActive('.opponent-btn', 'menuOpponentSurvival');
             showMessage('Противник: ВЫЖИВАНИЕ');
         });
     }
     
-    // Выбор режима матча
+    // Выбор режима матча (группа .match-btn)
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
     if (btnClassic) {
         btnClassic.addEventListener('click', () => {
             matchMode = 'classic';
-            setMenuActive('menuMatchClassic', 'menuMatchClassic');
+            setMenuActive('.match-btn', 'menuMatchClassic');
             tournamentActive = false;
             showMessage('Режим: Классика');
         });
@@ -68,7 +68,7 @@ function setupEventListeners() {
     if (btnTournament) {
         btnTournament.addEventListener('click', () => {
             matchMode = 'tournament';
-            setMenuActive('menuMatchTournament', 'menuMatchTournament');
+            setMenuActive('.match-btn', 'menuMatchTournament');
             tournamentScore = [0, 0];
             tournamentActive = true;
             showMessage('Режим: ТУРНИР до 3 побед');
@@ -79,11 +79,8 @@ function setupEventListeners() {
     const playBtn = document.getElementById('menuPlayBtn');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
-            // Обновляем UI перед переходом
             if (typeof updateUI === 'function') updateUI();
-            // Показываем игровой экран
             showScreen('gameScreen');
-            // Запускаем игру
             if (typeof resetGame === 'function') resetGame();
         });
     }
@@ -97,20 +94,16 @@ function setupEventListeners() {
     }
     
     // ===== ИГРОВОЙ ЭКРАН =====
-    // Кнопка НАЗАД
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
-            // Останавливаем игру
             if (typeof gameLoop !== 'undefined' && gameLoop) {
                 clearInterval(gameLoop);
                 gameLoop = null;
             }
             if (typeof gameActive !== 'undefined') gameActive = false;
             paused = false;
-            // Показываем меню
             showScreen('menuScreen');
-            // Обновляем рекорд в меню
             const recordDisplay = document.getElementById('menuRecordDisplay');
             if (recordDisplay && typeof bestRecord !== 'undefined') {
                 recordDisplay.innerText = bestRecord;
@@ -120,7 +113,6 @@ function setupEventListeners() {
     
     // ===== КЛАВИАТУРА =====
     document.addEventListener('keydown', (e) => {
-        // ESC в игре — пауза
         if (e.key === 'Escape') {
             const gameScreen = document.getElementById('gameScreen');
             if (gameScreen && gameScreen.classList.contains('active')) {
@@ -132,7 +124,6 @@ function setupEventListeners() {
             }
         }
         
-        // Управление в игре
         const gameScreen = document.getElementById('gameScreen');
         if (!gameScreen || !gameScreen.classList.contains('active')) return;
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
@@ -169,7 +160,6 @@ function setupEventListeners() {
     });
 }
 
-// Обновление UI (счёт)
 function updateUI() {
     const p1Score = document.getElementById('gamePlayer1Score');
     const p2Score = document.getElementById('gamePlayer2Score');
@@ -185,14 +175,12 @@ function updateUI() {
         }
     }
     
-    // Обновляем рекорд в меню
     const recordDisplay = document.getElementById('menuRecordDisplay');
     if (recordDisplay && typeof bestRecord !== 'undefined') {
         recordDisplay.innerText = bestRecord;
     }
 }
 
-// Показ сообщения
 function showMessage(msg) {
     const msgDiv = document.getElementById('gameMessage');
     if (msgDiv) msgDiv.innerText = msg;
