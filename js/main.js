@@ -20,6 +20,7 @@ function init() {
         showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
     }
     
+    // Ждём загрузки draw
     function waitForDraw() {
         if (typeof draw === 'function') {
             draw();
@@ -30,9 +31,6 @@ function init() {
         }
     }
     waitForDraw();
-    
-    const p2Controls = document.getElementById('player2-controls');
-    if (p2Controls) p2Controls.style.opacity = '0.5';
 }
 
 window.addEventListener('DOMContentLoaded', () => {
