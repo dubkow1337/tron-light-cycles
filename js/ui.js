@@ -28,12 +28,6 @@ function setMenuActive(groupSelector, activeId) {
     }
 }
 
-// ===== АКТИВАЦИЯ КНОПОК ПРИ ЗАГРУЗКЕ (чтобы по умолчанию горели "2 игрока" и "Классика") =====
-function setDefaultActive() {
-    setMenuActive('.opponent-btn', 'menuOpponent2p');
-    setMenuActive('.match-btn', 'menuMatchClassic');
-}
-
 function setupEventListeners() {
     // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
     const btn2p = document.getElementById('menuOpponent2p');
@@ -199,8 +193,3 @@ function setActiveButton(group, activeId) {
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
-
-// ===== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ =====
-window.addEventListener('DOMContentLoaded', () => {
-    setDefaultActive();
-});
