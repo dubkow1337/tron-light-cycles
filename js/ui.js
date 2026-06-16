@@ -13,14 +13,13 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// ===== ГАРАНТИРОВАННЫЙ СБРОС ВСЕХ КНОПОК =====
+// ===== СБРАСЫВАЕМ ТОЛЬКО В СВОЕЙ ГРУППЕ =====
 function setMenuActive(groupSelector, activeId) {
-    // 1. Сбрасываем ВСЕ кнопки с классом .menu-btn (без разбора групп)
-    document.querySelectorAll('.menu-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
+    // 1. Сбрасываем ТОЛЬКО кнопки в этой группе
+    const buttons = document.querySelectorAll(groupSelector);
+    buttons.forEach(btn => btn.classList.remove('active'));
     
-    // 2. Активируем только нужную
+    // 2. Активируем нужную
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -30,7 +29,7 @@ function setMenuActive(groupSelector, activeId) {
 }
 
 function setupEventListeners() {
-    // ===== ГРУППА 1: ПРОТИВНИК =====
+    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -57,7 +56,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
