@@ -8,6 +8,13 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
+// ===== БОНУСЫ (флаги из bonuses.js) =====
+// Эти флаги устанавливаются в bonuses.js и используются здесь
+let bonusShieldActive = false;
+let bonusSpeedActive = false;
+let bonusSlowActive = false;
+let bonusNoTrailActive = false;
+
 function showVictory(name) {
     const overlay = document.getElementById('victoryOverlay');
     if (overlay) {
@@ -49,14 +56,6 @@ function updateGame() {
     for (let p of players) {
         if (!p.alive) continue;
         
-        // Ускорение для игрока
-        let speedBonus = 0;
-        if (bonusSpeedActive && p === players[0]) {
-            speedBonus = -35; // быстрее
-        }
-        let currentMoveInterval = Math.max(35, MOVE_INTERVAL + speedBonus);
-        
-        // Движение
         p.x += p.dirX;
         p.y += p.dirY;
         p.trail.push({ x: p.x, y: p.y });
