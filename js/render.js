@@ -1,4 +1,4 @@
-// ========== ОТРИСОВКА ==========
+
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
