@@ -13,7 +13,7 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// ===== СБРАСЫВАЕМ ТОЛЬКО В СВОЕЙ ГРУППЕ =====
+// ===== СБРАСЫВАЕТ СВОЮ ГРУППУ, НЕ ТРОГАЯ ДРУГУЮ =====
 function setMenuActive(groupSelector, activeId) {
     // 1. Сбрасываем ТОЛЬКО кнопки в этой группе
     const buttons = document.querySelectorAll(groupSelector);
@@ -29,7 +29,7 @@ function setMenuActive(groupSelector, activeId) {
 }
 
 function setupEventListeners() {
-    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
+    // ===== ГРУППА 1: ПРОТИВНИК =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -56,7 +56,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
