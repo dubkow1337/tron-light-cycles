@@ -13,13 +13,13 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// ===== СБРАСЫВАЕТ СВОЮ ГРУППУ, НЕ ТРОГАЯ ДРУГУЮ =====
+// ===== СБРАСЫВАЕМ ТОЛЬКО В СВОЕЙ ГРУППЕ =====
 function setMenuActive(groupSelector, activeId) {
-    // 1. Сбрасываем ТОЛЬКО кнопки в этой группе
+    // 1. Находим ВСЕ кнопки в этой группе
     const buttons = document.querySelectorAll(groupSelector);
+    // 2. Убираем класс active у всех кнопок в этой группе
     buttons.forEach(btn => btn.classList.remove('active'));
-    
-    // 2. Активируем нужную
+    // 3. Добавляем класс active только нужной
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -28,8 +28,14 @@ function setMenuActive(groupSelector, activeId) {
     }
 }
 
+// ===== АКТИВАЦИЯ КНОПОК ПРИ ЗАГРУЗКЕ (чтобы по умолчанию горели "2 игрока" и "Классика") =====
+function setDefaultActive() {
+    setMenuActive('.opponent-btn', 'menuOpponent2p');
+    setMenuActive('.match-btn', 'menuMatchClassic');
+}
+
 function setupEventListeners() {
-    // ===== ГРУППА 1: ПРОТИВНИК =====
+    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -56,7 +62,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
@@ -193,3 +199,8 @@ function setActiveButton(group, activeId) {
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) activeBtn.classList.add('active');
 }
+
+// ===== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ =====
+window.addEventListener('DOMContentLoaded', () => {
+    setDefaultActive();
+});
