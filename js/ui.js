@@ -11,15 +11,21 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add('active');
+    
+    // Скрываем/показываем видео в зависимости от экрана
+    const bgVideo = document.getElementById('bgVideo');
+    if (bgVideo) {
+        if (screenId === 'gameScreen') {
+            bgVideo.style.display = 'none';
+        } else {
+            bgVideo.style.display = 'block';
+        }
+    }
 }
 
-// ===== ФУНКЦИЯ ПОДСВЕТКИ (ЧЕРЕЗ data-group) =====
 function setMenuActive(group, activeId) {
-    // 1. Находим ВСЕ кнопки с такой же data-group
     const buttons = document.querySelectorAll(`.menu-btn[data-group="${group}"]`);
-    // 2. Убираем класс active у всех кнопок в этой группе
     buttons.forEach(btn => btn.classList.remove('active'));
-    // 3. Добавляем класс active только нужной
     const activeBtn = document.getElementById(activeId);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -189,7 +195,6 @@ function showMessage(msg) {
     if (msgDiv) msgDiv.innerText = msg;
 }
 
-// Для совместимости со старым кодом
 function setActiveButton(group, activeId) {
     const buttons = document.querySelectorAll(group);
     buttons.forEach(btn => btn.classList.remove('active'));
