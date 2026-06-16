@@ -13,10 +13,10 @@ function showScreen(screenId) {
     if (screen) screen.classList.add('active');
 }
 
-// ===== СБРАСЫВАЕМ ТОЛЬКО В СВОЕЙ ГРУППЕ =====
-function setMenuActive(groupSelector, activeId) {
-    // 1. Находим ВСЕ кнопки в этой группе
-    const buttons = document.querySelectorAll(groupSelector);
+// ===== ФУНКЦИЯ ПОДСВЕТКИ (ЧЕРЕЗ data-group) =====
+function setMenuActive(group, activeId) {
+    // 1. Находим ВСЕ кнопки с такой же data-group
+    const buttons = document.querySelectorAll(`.menu-btn[data-group="${group}"]`);
     // 2. Убираем класс active у всех кнопок в этой группе
     buttons.forEach(btn => btn.classList.remove('active'));
     // 3. Добавляем класс active только нужной
@@ -29,7 +29,7 @@ function setMenuActive(groupSelector, activeId) {
 }
 
 function setupEventListeners() {
-    // ===== ГРУППА 1: ПРОТИВНИК (класс .opponent-btn) =====
+    // ===== ГРУППА 1: ПРОТИВНИК =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
     const btnSurvival = document.getElementById('menuOpponentSurvival');
@@ -37,33 +37,33 @@ function setupEventListeners() {
     if (btn2p) {
         btn2p.addEventListener('click', () => {
             opponentType = '2p';
-            setMenuActive('.opponent-btn', 'menuOpponent2p');
+            setMenuActive('opponent', 'menuOpponent2p');
             showMessage('Противник: 2 игрока');
         });
     }
     if (btnAI) {
         btnAI.addEventListener('click', () => {
             opponentType = 'ai';
-            setMenuActive('.opponent-btn', 'menuOpponentAI');
+            setMenuActive('opponent', 'menuOpponentAI');
             showMessage('Противник: VS AI');
         });
     }
     if (btnSurvival) {
         btnSurvival.addEventListener('click', () => {
             opponentType = 'survival';
-            setMenuActive('.opponent-btn', 'menuOpponentSurvival');
+            setMenuActive('opponent', 'menuOpponentSurvival');
             showMessage('Противник: ВЫЖИВАНИЕ');
         });
     }
     
-    // ===== ГРУППА 2: РЕЖИМ МАТЧА (класс .match-btn) =====
+    // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
     
     if (btnClassic) {
         btnClassic.addEventListener('click', () => {
             matchMode = 'classic';
-            setMenuActive('.match-btn', 'menuMatchClassic');
+            setMenuActive('match', 'menuMatchClassic');
             tournamentActive = false;
             showMessage('Режим: Классика');
         });
@@ -71,14 +71,14 @@ function setupEventListeners() {
     if (btnTournament) {
         btnTournament.addEventListener('click', () => {
             matchMode = 'tournament';
-            setMenuActive('.match-btn', 'menuMatchTournament');
+            setMenuActive('match', 'menuMatchTournament');
             tournamentScore = [0, 0];
             tournamentActive = true;
             showMessage('Режим: ТУРНИР до 3 побед');
         });
     }
     
-    // ===== ОСТАЛЬНЫЕ КНОПКИ =====
+    // ===== КНОПКА ИГРАТЬ =====
     const playBtn = document.getElementById('menuPlayBtn');
     if (playBtn) {
         playBtn.addEventListener('click', () => {
@@ -88,6 +88,7 @@ function setupEventListeners() {
         });
     }
     
+    // ===== ЗВУК =====
     const soundBtn = document.getElementById('menuSoundToggle');
     if (soundBtn) {
         soundBtn.addEventListener('click', () => {
@@ -95,6 +96,7 @@ function setupEventListeners() {
         });
     }
     
+    // ===== КНОПКА НАЗАД =====
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -187,6 +189,7 @@ function showMessage(msg) {
     if (msgDiv) msgDiv.innerText = msg;
 }
 
+// Для совместимости со старым кодом
 function setActiveButton(group, activeId) {
     const buttons = document.querySelectorAll(group);
     buttons.forEach(btn => btn.classList.remove('active'));
