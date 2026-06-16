@@ -64,7 +64,7 @@ function initSound() {
     try {
         bgMusic = new Audio('assets/sounds/tron-music.mp3');
         bgMusic.loop = true;
-        bgMusic.volume = 0.3;
+        bgMusic.volume = 0.1;
     } catch(e) { 
         console.log('Sound not loaded'); 
     }
