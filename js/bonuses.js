@@ -122,7 +122,7 @@ function updateBonuses() {
     
     // Спавн новых бонусов (каждые ~5 секунд)
     bonusTimer++;
-    if (bonusTimer > 250 && bonuses.length < 3) {
+    if (bonusTimer > 70 && bonuses.length < 3) {
         bonusTimer = 0;
         spawnBonus();
     }
