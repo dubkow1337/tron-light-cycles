@@ -1,7 +1,6 @@
 // ========== ГЛАВНАЯ ЛОГИКА ИГРЫ ==========
 
-// ПРИНУДИТЕЛЬНО ОБЪЯВЛЯЕМ crashEffect
-var crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+// crashEffect объявлен в render.js, НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
 
 let gameActive = true;
 let gameLoop = null;
