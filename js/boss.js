@@ -4,7 +4,7 @@ let boss = null;
 let bossSpawnTimer = 0;
 const BOSS_SPAWN_INTERVAL = 30000;
 const BOSS_MAX_HEALTH = 5;
-const BOSS_SIZE = 3; // ← ТЕПЕРЬ 3x3 КЛЕТКИ!
+const BOSS_SIZE = 3;
 
 function spawnBoss() {
     if (boss && boss.alive) return;
@@ -75,8 +75,8 @@ function spawnBoss() {
         x: x, y: y,
         dirX: dirX,
         dirY: dirY,
-        trailLeft: [],   // ← ЛЕВАЯ ЛИНИЯ
-        trailRight: [],  // ← ПРАВАЯ ЛИНИЯ
+        trail: [],        // ← ОСНОВНОЙ СЛЕД (ЦЕНТР)
+        trailRight: [],   // ← ПРАВАЯ ЛИНИЯ
         alive: true,
         color: '#ff3300',
         trailColor: '#ff2200',
@@ -88,9 +88,9 @@ function spawnBoss() {
         size: BOSS_SIZE
     };
     
-    // Начальные точки для линий
-    const offset = 1; // смещение на 1 клетку от края босса
-    boss.trailLeft.push({ x: x - boss.dirY * offset, y: y + boss.dirX * offset });
+    // Начальные точки
+    boss.trail.push({ x: x, y: y });
+    const offset = 1;
     boss.trailRight.push({ x: x + boss.dirY * offset, y: y - boss.dirX * offset });
     
     showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
@@ -165,15 +165,13 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // ===== ДВЕ ПАРАЛЛЕЛЬНЫЕ ЛИНИИ (СМЕЩЕНИЕ НА 1 ОТ КРАЯ) =====
-        const offset = 1;
-        // Левая линия (смещение влево от направления движения)
-        const leftX = boss.x - boss.dirY * offset;
-        const leftY = boss.y + boss.dirX * offset;
-        boss.trailLeft.push({ x: leftX, y: leftY });
-        if (boss.trailLeft.length > 100) boss.trailLeft.shift();
+        // ===== ДВЕ ЛИНИИ: ЦЕНТР И ПРАВАЯ =====
+        // Центральная линия
+        boss.trail.push({ x: boss.x, y: boss.y });
+        if (boss.trail.length > 100) boss.trail.shift();
         
         // Правая линия (смещение вправо от направления движения)
+        const offset = 1;
         const rightX = boss.x + boss.dirY * offset;
         const rightY = boss.y - boss.dirX * offset;
         boss.trailRight.push({ x: rightX, y: rightY });
