@@ -262,3 +262,17 @@ function resetSurvivalTimer() {
     spawnTimer = 0;
     lastSpawnTime = Date.now();
 }
+
+// ===== УПРАВЛЕНИЕ БОССОМ =====
+if (typeof boss !== 'undefined') {
+    if (bossSpawnTimer === undefined) {
+        bossSpawnTimer = 0;
+    }
+    bossSpawnTimer += 16;
+    if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
+        bossSpawnTimer = 0;
+        if (typeof spawnBoss === 'function') spawnBoss();
+    }
+    
+    if (typeof updateBoss === 'function') updateBoss();
+}
