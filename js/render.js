@@ -154,13 +154,13 @@ function draw() {
     
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // Левый след
+    // ЛЕВАЯ ЛИНИЯ
     if (boss.trailLeft && boss.trailLeft.length >= 2) {
         ctx.beginPath();
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
         ctx.moveTo(boss.trailLeft[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[0].y * CELL_SIZE + CELL_SIZE/2);
@@ -170,13 +170,13 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
         ctx.stroke();
     }
     
-    // Правый след
+    // ПРАВАЯ ЛИНИЯ
     if (boss.trailRight && boss.trailRight.length >= 2) {
         ctx.beginPath();
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
         ctx.moveTo(boss.trailRight[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[0].y * CELL_SIZE + CELL_SIZE/2);
@@ -186,7 +186,7 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
         ctx.stroke();
     }
     
-    // Корпус босса
+    // КОРПУС БОССА (без глазок)
     const size = boss.size || 2;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -199,28 +199,19 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
     else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
     
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 20;
     ctx.shadowColor = boss.color || '#ff3300';
     
+    // Простой корпус (без глазок)
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
-    ctx.moveTo(16, 0);
-    ctx.lineTo(-8, -12);
-    ctx.lineTo(-8, -4);
-    ctx.lineTo(-4, 0);
-    ctx.lineTo(-8, 4);
-    ctx.lineTo(-8, 12);
+    ctx.moveTo(14, 0);
+    ctx.lineTo(-6, -10);
+    ctx.lineTo(-6, -3);
+    ctx.lineTo(-2, 0);
+    ctx.lineTo(-6, 3);
+    ctx.lineTo(-6, 10);
     ctx.closePath();
-    ctx.fill();
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(10, -5, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(10, 5, 3, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.restore();
