@@ -474,10 +474,11 @@ body {
 .game-top-panel {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: center;  /* ← ВЕРТИКАЛЬНОЕ ВЫРАВНИВАНИЕ ПО ЦЕНТРУ */
     gap: 20px;
     width: 100%;
     max-width: 1200px;
+    min-height: 50px;     /* ← ФИКСИРОВАННАЯ ВЫСОТА, ЧТОБЫ НЕ СЖИМАЛОСЬ */
 }
 
 .back-btn {
