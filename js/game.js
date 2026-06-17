@@ -14,7 +14,7 @@ let bonusSpeedActive = false;
 let bonusSlowActive = false;
 let bonusNoTrailActive = false;
 
-// spawnTimer объявлен в survival.js — НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
+// spawnTimer ОБЪЯВЛЕН В survival.js — НЕ ДУБЛИРУЕМ!
 
 function showVictory(name) {
     const overlay = document.getElementById('victoryOverlay');
