@@ -64,8 +64,8 @@ function spawnBoss() {
         dirX: 0,
         dirY: 0,
         trail: [],
-        trailLeft: [], // ← ЛЕВЫЙ СЛЕД
-        trailRight: [], // ← ПРАВЫЙ СЛЕД
+        trailLeft: [],
+        trailRight: [],
         alive: true,
         color: '#ff3300',
         trailColor: '#ff2200',
@@ -78,7 +78,6 @@ function spawnBoss() {
         size: BOSS_SIZE
     };
     
-    // Начальный след
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
         for (let dy = 0; dy < BOSS_SIZE; dy++) {
             boss.trail.push({ x: x + dx, y: y + dy });
@@ -147,18 +146,16 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // ===== ДВОЙНОЙ СЛЕД (ДВЕ ПАРАЛЛЕЛЬНЫЕ ЛИНИИ) =====
-        const perpX = -boss.dirY; // Перпендикулярное направление
+        // ===== ДВОЙНОЙ СЛЕД =====
+        const perpX = -boss.dirY;
         const perpY = boss.dirX;
         
-        // Основной след
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
             for (let dy = 0; dy < BOSS_SIZE; dy++) {
                 boss.trail.push({ x: boss.x + dx, y: boss.y + dy });
             }
         }
         
-        // Левый след (смещение влево от направления движения)
         const leftX = boss.x + perpX;
         const leftY = boss.y + perpY;
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
@@ -167,7 +164,6 @@ function updateBoss() {
             }
         }
         
-        // Правый след (смещение вправо от направления движения)
         const rightX = boss.x - perpX;
         const rightY = boss.y - perpY;
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
@@ -176,10 +172,62 @@ function updateBoss() {
             }
         }
         
-        // Ограничиваем длину следов
         if (boss.trail.length > 60) boss.trail.splice(0, 20);
         if (boss.trailLeft.length > 60) boss.trailLeft.splice(0, 20);
         if (boss.trailRight.length > 60) boss.trailRight.splice(0, 20);
+        
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
+        let hitPlayerTrail = false;
+        const playerTrail = player.trail || [];
+        
+        for (let dx = 0; dx < BOSS_SIZE; dx++) {
+            for (let dy = 0; dy < BOSS_SIZE; dy++) {
+                const bx = boss.x + dx;
+                const by = boss.y + dy;
+                
+                // Проверяем, что босс наехал на след игрока
+                for (let t = 0; t < playerTrail.length - 1; t++) {
+                    if (playerTrail[t].x === bx && playerTrail[t].y === by) {
+                        hitPlayerTrail = true;
+                        break;
+                    }
+                }
+                if (hitPlayerTrail) break;
+            }
+            if (hitPlayerTrail) break;
+        }
+        
+        if (hitPlayerTrail) {
+            // Босс врезался в след игрока — получает урон
+            boss.health--;
+            if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
+            
+            if (boss.health <= 0) {
+                boss.alive = false;
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        if (typeof explode === 'function') {
+                            explode(
+                                boss.x + (Math.random() - 0.5) * 5,
+                                boss.y + (Math.random() - 0.5) * 5,
+                                '#ff3300'
+                            );
+                        }
+                    }, i * 100);
+                }
+                showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
+                currentSteps += 10;
+                bossSpawnTimer = 0;
+                boss = null;
+                return;
+            } else {
+                showMessage(`💥 LIGHT RUNNER ВРЕЗАЛСЯ В СЛЕД! ❤️ ${boss.health}/${boss.maxHealth}`);
+                // Отталкиваем босса от следа
+                boss.dirX = -boss.dirX || 1;
+                boss.dirY = -boss.dirY || 1;
+                continue;
+            }
+        }
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ИГРОКОМ =====
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
@@ -187,7 +235,6 @@ function updateBoss() {
                 const bx = boss.x + dx;
                 const by = boss.y + dy;
                 
-                // Если босс наехал на игрока
                 if (bx === player.x && by === player.y) {
                     player.alive = false;
                     if (typeof explode === 'function') explode(player.x, player.y, player.color);
@@ -204,11 +251,9 @@ function updateBoss() {
 function hitBoss() {
     if (!boss || !boss.alive) return;
     
-    // Проверяем, что игрок действительно врезался в босса
     const player = players[0];
     if (!player || !player.alive) return;
     
-    // Проверяем, что игрок касается босса
     let hit = false;
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
         for (let dy = 0; dy < BOSS_SIZE; dy++) {
