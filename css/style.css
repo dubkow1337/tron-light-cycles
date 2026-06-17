@@ -76,7 +76,7 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* ===== ЗАГОЛОВОК (без глюков) ===== */
+/* ===== ЗАГОЛОВОК ===== */
 .game-title {
     font-family: 'Orbitron', sans-serif;
     font-weight: 900;
@@ -271,22 +271,38 @@ body {
     gap: 15px;
 }
 
-.back-btn {
-    position: absolute;
-    top: -50px;
-    left: 0;
+/* ===== ВЕРХНЯЯ ПАНЕЛЬ В ИГРЕ ===== */
+.game-top-panel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+    min-height: 50px;
+    margin: 0 auto;
+}
+
+.back-btn,
+.restart-btn {
     font-family: 'Orbitron', sans-serif;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 1px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid #ff5555;
-    color: #ff5555;
-    padding: 8px 20px;
+    padding: 8px 18px;
     border-radius: 30px;
     cursor: pointer;
     transition: all 0.25s ease;
+    white-space: nowrap;
     z-index: 50;
+    border: 1px solid;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.back-btn {
+    color: #ff5555;
+    border-color: #ff5555;
 }
 
 .back-btn:hover {
@@ -294,22 +310,37 @@ body {
     box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.15);
 }
 
+.restart-btn {
+    color: #00ff88;
+    border-color: #00ff88;
+}
+
+.restart-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #00ff88, 0 0 50px rgba(0, 255, 136, 0.15);
+}
+
+/* ===== СЧЁТ ===== */
 .game-score {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: 30px;
+    justify-content: center;
+    gap: 15px;
     background: rgba(0, 0, 0, 0.5);
-    padding: 8px 25px;
+    padding: 4px 20px;
     border-radius: 40px;
     border: 1px solid rgba(0, 255, 255, 0.15);
     backdrop-filter: blur(5px);
+    flex: 1;
+    max-width: 400px;
+    min-width: 200px;
 }
 
 .score {
     display: flex;
-    gap: 10px;
-    font-size: 20px;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
     font-weight: bold;
     font-family: 'Orbitron', monospace;
 }
@@ -324,20 +355,26 @@ body {
     text-shadow: 0 0 10px #ffaa00;
 }
 
-.score-divider {
-    font-size: 24px;
-    color: #ffffff;
-    font-weight: bold;
+.score-label {
+    font-size: 11px;
+    color: #88aaff;
 }
 
 .score-value {
     background: rgba(0, 0, 0, 0.4);
-    padding: 0 10px;
-    border-radius: 10px;
-    min-width: 40px;
+    padding: 0 8px;
+    border-radius: 8px;
+    min-width: 30px;
     text-align: center;
 }
 
+.score-divider {
+    font-size: 20px;
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* ===== ИГРОВОЕ ПОЛЕ ===== */
 .game-area {
     position: relative;
     border: 3px solid #00ffff;
@@ -407,6 +444,47 @@ body {
     }
 }
 
+@media (max-width: 900px) {
+    .game-top-panel {
+        gap: 10px;
+        flex-wrap: nowrap;
+        min-height: 40px;
+    }
+    
+    .back-btn,
+    .restart-btn {
+        font-size: 10px;
+        padding: 6px 12px;
+    }
+    
+    .game-score {
+        padding: 2px 12px;
+        gap: 8px;
+        flex: 1;
+        min-width: 120px;
+        max-width: 300px;
+    }
+    
+    .score {
+        font-size: 14px;
+        gap: 4px;
+    }
+    
+    .score-label {
+        font-size: 9px;
+    }
+    
+    .score-value {
+        font-size: 14px;
+        padding: 0 4px;
+        min-width: 20px;
+    }
+    
+    .score-divider {
+        font-size: 14px;
+    }
+}
+
 @media (max-width: 800px) {
     .game-title {
         font-size: 20px;
@@ -452,6 +530,45 @@ body {
     }
 }
 
+@media (max-width: 600px) {
+    .game-top-panel {
+        gap: 6px;
+    }
+    
+    .back-btn,
+    .restart-btn {
+        font-size: 8px;
+        padding: 4px 8px;
+        letter-spacing: 0;
+    }
+    
+    .game-score {
+        padding: 2px 8px;
+        gap: 4px;
+        min-width: 80px;
+        max-width: 200px;
+    }
+    
+    .score {
+        font-size: 11px;
+        gap: 2px;
+    }
+    
+    .score-label {
+        font-size: 7px;
+    }
+    
+    .score-value {
+        font-size: 11px;
+        padding: 0 3px;
+        min-width: 16px;
+    }
+    
+    .score-divider {
+        font-size: 11px;
+    }
+}
+
 @media (max-width: 500px) {
     .menu-btn {
         font-size: 10px;
@@ -467,83 +584,5 @@ body {
     }
     .menu-record {
         text-align: center;
-    }
-}
-
-/* ===== ВЕРХНЯЯ ПАНЕЛЬ В ИГРЕ ===== */
-.game-top-panel {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;  /* ← ВЕРТИКАЛЬНОЕ ВЫРАВНИВАНИЕ ПО ЦЕНТРУ */
-    gap: 20px;
-    width: 100%;
-    max-width: 1200px;
-    min-height: 50px;     /* ← ФИКСИРОВАННАЯ ВЫСОТА, ЧТОБЫ НЕ СЖИМАЛОСЬ */
-}
-
-.back-btn {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 1px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid #ff5555;
-    color: #ff5555;
-    padding: 8px 20px;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    white-space: nowrap;
-    z-index: 50;
-}
-
-.back-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.15);
-}
-
-.restart-btn {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: 1px;
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid #00ff88;
-    color: #00ff88;
-    padding: 8px 20px;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    white-space: nowrap;
-    z-index: 50;
-}
-
-.restart-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px #00ff88, 0 0 50px rgba(0, 255, 136, 0.15);
-}
-
-/* ===== АДАПТАЦИЯ ДЛЯ ПЛАНШЕТОВ И ТЕЛЕФОНОВ ===== */
-@media (max-width: 800px) {
-    .game-top-panel {
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 10px;
-    }
-    .back-btn, .restart-btn {
-        font-size: 11px;
-        padding: 6px 14px;
-    }
-    .game-score {
-        font-size: 14px;
-        padding: 4px 12px;
-        gap: 10px;
-        order: 2; /* ставим счёт между кнопками на узких экранах */
-    }
-    .back-btn {
-        order: 1;
-    }
-    .restart-btn {
-        order: 3;
     }
 }
