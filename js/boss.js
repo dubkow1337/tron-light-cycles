@@ -2,7 +2,7 @@
 
 let boss = null;
 let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 30000; // 30 секунд между появлениями
+const BOSS_SPAWN_INTERVAL = 5000; // 5 секунд между появлениями
 const BOSS_MAX_HEALTH = 5;
 
 function spawnBoss() {
