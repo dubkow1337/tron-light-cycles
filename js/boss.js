@@ -59,12 +59,25 @@ function spawnBoss() {
         y = Math.floor(HEIGHT / 2);
     }
     
+    // Направление к игроку (нормализованное)
+    let dirX = 0, dirY = 0;
+    if (player) {
+        const dx = player.x - x;
+        const dy = player.y - y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            dirX = dx > 0 ? 1 : -1;
+        } else {
+            dirY = dy > 0 ? 1 : -1;
+        }
+    }
+    if (dirX === 0 && dirY === 0) dirX = 1;
+    
     boss = {
         x: x, y: y,
-        dirX: 1,
-        dirY: 0,
-        trailLeft: [],
-        trailRight: [],
+        dirX: dirX,
+        dirY: dirY,
+        trailLeft: [],  // ← ЛЕВАЯ ЛИНИЯ (ПУСТАЯ)
+        trailRight: [], // ← ПРАВАЯ ЛИНИЯ (ПУСТАЯ)
         alive: true,
         color: '#ff3300',
         trailColor: '#ff2200',
@@ -76,24 +89,21 @@ function spawnBoss() {
         size: BOSS_SIZE
     };
     
-    // Начальные линии (смещение в зависимости от направления)
-    updateBossTrail();
+    // НЕ ДОБАВЛЯЕМ НАЧАЛЬНЫЙ СЛЕД! Он будет добавлен при первом движении.
     
     showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
 }
 
-// ===== ФУНКЦИЯ ДЛЯ ПРАВИЛЬНОГО ДВОЙНОГО СЛЕДА =====
-function updateBossTrail() {
+// ===== ФУНКЦИЯ ДЛЯ ДВОЙНОГО СЛЕДА =====
+function addBossTrail() {
     if (!boss || !boss.alive) return;
-    
-    // Определяем перпендикулярное направление (влево/вправо от движения)
-    let perpX = -boss.dirY;
-    let perpY = boss.dirX;
-    
-    // Если босс стоит на месте — не добавляем следы
     if (boss.dirX === 0 && boss.dirY === 0) return;
     
-    // Левая линия (смещение влево от направления движения)
+    // Перпендикулярное направление (влево/вправо от движения)
+    const perpX = -boss.dirY;
+    const perpY = boss.dirX;
+    
+    // Левая линия
     const leftX = boss.x + perpX;
     const leftY = boss.y + perpY;
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
@@ -102,7 +112,7 @@ function updateBossTrail() {
         }
     }
     
-    // Правая линия (смещение вправо от направления движения)
+    // Правая линия
     const rightX = boss.x - perpX;
     const rightY = boss.y - perpY;
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
@@ -112,8 +122,8 @@ function updateBossTrail() {
     }
     
     // Ограничиваем длину
-    if (boss.trailLeft.length > 80) boss.trailLeft.splice(0, 20);
-    if (boss.trailRight.length > 80) boss.trailRight.splice(0, 20);
+    if (boss.trailLeft.length > 100) boss.trailLeft.splice(0, 30);
+    if (boss.trailRight.length > 100) boss.trailRight.splice(0, 30);
 }
 
 function updateBoss() {
@@ -143,30 +153,33 @@ function updateBoss() {
         const futureX = player.x + player.dirX * 5;
         const futureY = player.y + player.dirY * 5;
         
+        let newDirX = 0, newDirY = 0;
         if (distToPlayer < 6) {
             const angle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? 1.2 : -1.2);
-            boss.dirX = Math.round(Math.cos(angle));
-            boss.dirY = Math.round(Math.sin(angle));
+            newDirX = Math.round(Math.cos(angle));
+            newDirY = Math.round(Math.sin(angle));
         } else {
             const angle = Math.atan2(futureY - boss.y, futureX - boss.x);
             const offset = (Math.random() - 0.5) * 0.8;
-            boss.dirX = Math.round(Math.cos(angle + offset));
-            boss.dirY = Math.round(Math.sin(angle + offset));
+            newDirX = Math.round(Math.cos(angle + offset));
+            newDirY = Math.round(Math.sin(angle + offset));
         }
         
         // Нормализуем направление (только 4 направления)
-        if (boss.dirX !== 0 && boss.dirY !== 0) {
-            // Если диагональ — выбираем главное направление
-            if (Math.abs(boss.dirX) > Math.abs(boss.dirY)) {
-                boss.dirY = 0;
+        if (newDirX !== 0 && newDirY !== 0) {
+            if (Math.abs(newDirX) > Math.abs(newDirY)) {
+                newDirY = 0;
             } else {
-                boss.dirX = 0;
+                newDirX = 0;
             }
         }
         
-        if (boss.dirX === 0 && boss.dirY === 0) {
-            boss.dirX = 1;
+        if (newDirX === 0 && newDirY === 0) {
+            newDirX = 1;
         }
+        
+        boss.dirX = newDirX;
+        boss.dirY = newDirY;
     }
     
     // Движение
@@ -184,7 +197,7 @@ function updateBoss() {
         boss.y = newY;
         
         // ===== ДОБАВЛЯЕМ СЛЕД (ДВЕ ПАРАЛЛЕЛЬНЫЕ ЛИНИИ) =====
-        updateBossTrail();
+        addBossTrail();
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
         let hitPlayerTrail = false;
@@ -304,4 +317,4 @@ function hitBoss() {
 function resetBoss() {
     boss = null;
     bossSpawnTimer = 0;
-    }
+}
