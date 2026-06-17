@@ -101,7 +101,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== КНОПКА НАЗАД (С ОЧИСТКОЙ ВРАГОВ) =====
+    // ===== КНОПКА НАЗАД =====
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -112,7 +112,6 @@ function setupEventListeners() {
             if (typeof gameActive !== 'undefined') gameActive = false;
             paused = false;
             
-            // ===== ОЧИЩАЕМ ВРАГОВ ПРИ ВЫХОДЕ =====
             if (typeof survivalEnemies !== 'undefined') {
                 survivalEnemies = [];
             }
@@ -121,6 +120,16 @@ function setupEventListeners() {
             const recordDisplay = document.getElementById('menuRecordDisplay');
             if (recordDisplay && typeof bestRecord !== 'undefined') {
                 recordDisplay.innerText = bestRecord;
+            }
+        });
+    }
+    
+    // ===== НОВАЯ КНОПКА "ИГРАТЬ СНОВА" =====
+    const restartBtn = document.getElementById('restartGameBtn');
+    if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+            if (typeof resetGame === 'function') {
+                resetGame(); // перезапускает игру с теми же настройками
             }
         });
     }
