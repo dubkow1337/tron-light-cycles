@@ -154,7 +154,7 @@ function draw() {
     
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // ЛЕВАЯ ЛИНИЯ
+    // Левая линия (пропускаем точки с break)
     if (boss.trailLeft && boss.trailLeft.length >= 2) {
         ctx.beginPath();
         ctx.lineWidth = 4;
@@ -163,14 +163,25 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
         ctx.shadowBlur = 10;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trailLeft[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trailLeft.length; i++) {
-            ctx.lineTo(boss.trailLeft[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[i].y * CELL_SIZE + CELL_SIZE/2);
+        
+        let started = false;
+        for (let i = 0; i < boss.trailLeft.length; i++) {
+            const p = boss.trailLeft[i];
+            if (p.break) {
+                started = false;
+                continue;
+            }
+            if (!started) {
+                ctx.moveTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
+                started = true;
+            } else {
+                ctx.lineTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
+            }
         }
         ctx.stroke();
     }
     
-    // ПРАВАЯ ЛИНИЯ
+    // Правая линия (пропускаем точки с break)
     if (boss.trailRight && boss.trailRight.length >= 2) {
         ctx.beginPath();
         ctx.lineWidth = 4;
@@ -179,14 +190,25 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
         ctx.shadowBlur = 10;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trailRight[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trailRight.length; i++) {
-            ctx.lineTo(boss.trailRight[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[i].y * CELL_SIZE + CELL_SIZE/2);
+        
+        let started = false;
+        for (let i = 0; i < boss.trailRight.length; i++) {
+            const p = boss.trailRight[i];
+            if (p.break) {
+                started = false;
+                continue;
+            }
+            if (!started) {
+                ctx.moveTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
+                started = true;
+            } else {
+                ctx.lineTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
+            }
         }
         ctx.stroke();
     }
     
-    // КОРПУС БОССА (без глазок)
+    // Корпус босса
     const size = boss.size || 2;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -202,7 +224,6 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     ctx.shadowBlur = 20;
     ctx.shadowColor = boss.color || '#ff3300';
     
-    // Простой корпус (без глазок)
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
     ctx.moveTo(14, 0);
