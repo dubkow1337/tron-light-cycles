@@ -152,25 +152,41 @@ function draw() {
         }
     }
     
- // ===== БОСС (LIGHT RUNNER) =====
+// ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // След босса
-    if (boss.trail && boss.trail.length >= 2) {
+    // Левый след
+    if (boss.trailLeft && boss.trailLeft.length >= 2) {
         ctx.beginPath();
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trail.length; i++) {
-            ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.moveTo(boss.trailLeft[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[0].y * CELL_SIZE + CELL_SIZE/2);
+        for (let i = 1; i < boss.trailLeft.length; i++) {
+            ctx.lineTo(boss.trailLeft[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[i].y * CELL_SIZE + CELL_SIZE/2);
         }
         ctx.stroke();
     }
     
-    // Корпус босса (2x2 клетки)
+    // Правый след
+    if (boss.trailRight && boss.trailRight.length >= 2) {
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = boss.trailColor || '#ff2200';
+        ctx.strokeStyle = boss.trailColor || '#ff2200';
+        ctx.moveTo(boss.trailRight[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[0].y * CELL_SIZE + CELL_SIZE/2);
+        for (let i = 1; i < boss.trailRight.length; i++) {
+            ctx.lineTo(boss.trailRight[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[i].y * CELL_SIZE + CELL_SIZE/2);
+        }
+        ctx.stroke();
+    }
+    
+    // Корпус босса
     const size = boss.size || 2;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -186,7 +202,6 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     ctx.shadowBlur = 25;
     ctx.shadowColor = boss.color || '#ff3300';
     
-    // Корпус (большой, 2x2)
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
     ctx.moveTo(16, 0);
@@ -198,7 +213,6 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     ctx.closePath();
     ctx.fill();
     
-    // Белые фары
     ctx.fillStyle = '#ffffff';
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#ffffff';
