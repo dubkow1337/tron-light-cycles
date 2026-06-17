@@ -153,60 +153,20 @@ function draw() {
     }
     
 // ===== БОСС (LIGHT RUNNER) =====
-if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // Левая линия (пропускаем точки с break)
-    if (boss.trailLeft && boss.trailLeft.length >= 2) {
-        ctx.beginPath();
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = boss.trailColor || '#ff2200';
-        ctx.strokeStyle = boss.trailColor || '#ff2200';
-        
-        let started = false;
-        for (let i = 0; i < boss.trailLeft.length; i++) {
-            const p = boss.trailLeft[i];
-            if (p.break) {
-                started = false;
-                continue;
-            }
-            if (!started) {
-                ctx.moveTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
-                started = true;
-            } else {
-                ctx.lineTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
-            }
-        }
-        ctx.stroke();
+if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
+    // ОДНА ПОЛОСА (как у обычного мотоцикла)
+    ctx.beginPath();
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = boss.trailColor || '#ff2200';
+    ctx.strokeStyle = boss.trailColor || '#ff2200';
+    ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+    for (let i = 1; i < boss.trail.length; i++) {
+        ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
     }
-    
-    // Правая линия (пропускаем точки с break)
-    if (boss.trailRight && boss.trailRight.length >= 2) {
-        ctx.beginPath();
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = boss.trailColor || '#ff2200';
-        ctx.strokeStyle = boss.trailColor || '#ff2200';
-        
-        let started = false;
-        for (let i = 0; i < boss.trailRight.length; i++) {
-            const p = boss.trailRight[i];
-            if (p.break) {
-                started = false;
-                continue;
-            }
-            if (!started) {
-                ctx.moveTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
-                started = true;
-            } else {
-                ctx.lineTo(p.x * CELL_SIZE + CELL_SIZE/2, p.y * CELL_SIZE + CELL_SIZE/2);
-            }
-        }
-        ctx.stroke();
-    }
+    ctx.stroke();
     
     // Корпус босса
     const size = boss.size || 2;
@@ -221,17 +181,17 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
     else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
     
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 25;
     ctx.shadowColor = boss.color || '#ff3300';
     
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
-    ctx.moveTo(14, 0);
-    ctx.lineTo(-6, -10);
-    ctx.lineTo(-6, -3);
-    ctx.lineTo(-2, 0);
-    ctx.lineTo(-6, 3);
-    ctx.lineTo(-6, 10);
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-8, -12);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-8, 4);
+    ctx.lineTo(-8, 12);
     ctx.closePath();
     ctx.fill();
     
