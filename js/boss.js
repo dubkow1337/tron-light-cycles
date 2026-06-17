@@ -71,7 +71,7 @@ function spawnBoss() {
         trailColor: '#ff2200',
         health: BOSS_MAX_HEALTH,
         maxHealth: BOSS_MAX_HEALTH,
-        speed: 1.3,
+        speed: 0.6,
         doubleTrail: true,
         spawnProtection: 60,
         lastDirChange: 0,
