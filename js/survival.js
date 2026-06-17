@@ -5,7 +5,6 @@ let spawnTimer = 0;
 let lastSpawnTime = 0; // ← НОВЫЙ ТАЙМЕР НА РЕАЛЬНОМ ВРЕМЕНИ
 const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
 const MAX_ENEMIES = 20;
-const BOSS_SPAWN_INTERVAL = 30000;
 
 function spawnSurvivalEnemies() {
     survivalEnemies = [];
