@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>TRON: Light Cycles</title>
     <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
@@ -17,32 +18,71 @@
         </video>
         
         <div class="menu-container">
-            <h1 class="game-title" data-text="TRON: LIGHT CYCLES">TRON: LIGHT CYCLES</h1>
+            <h1 class="game-title">TRON: LIGHT CYCLES</h1>
             
+            <!-- ВЫБОР ПРОТИВНИКА -->
             <div class="menu-section">
                 <h3>🎮 ПРОТИВНИК</h3>
                 <div class="menu-grid">
-                    <button id="menuOpponent2p" class="menu-btn" data-group="opponent">👥 2 ИГРОКА</button>
-                    <button id="menuOpponentAI" class="menu-btn" data-group="opponent">🤖 VS AI</button>
-                    <button id="menuOpponentSurvival" class="menu-btn" data-group="opponent">☠️ ВЫЖИВАНИЕ</button>
+                    <button id="menuOpponent2p" class="menu-btn" data-group="opponent">ДВА ИГРОКА</button>
+                    <button id="menuOpponentAI" class="menu-btn" data-group="opponent">ПРОТИВ ИИ</button>
+                    <button id="menuOpponentSurvival" class="menu-btn" data-group="opponent">ВЫЖИВАНИЕ</button>
                 </div>
             </div>
             
+            <!-- ВЫБОР РЕЖИМА МАТЧА -->
             <div class="menu-section">
                 <h3>🏆 РЕЖИМ</h3>
                 <div class="menu-grid">
-                    <button id="menuMatchClassic" class="menu-btn" data-group="match">⚔️ КЛАССИКА</button>
-                    <button id="menuMatchTournament" class="menu-btn" data-group="match">👑 ТУРНИР (до 3)</button>
+                    <button id="menuMatchClassic" class="menu-btn" data-group="match">КЛАССИКА</button>
+                    <button id="menuMatchTournament" class="menu-btn" data-group="match">ТУРНИР ДО 3</button>
                 </div>
             </div>
             
+            <!-- КНОПКА ИГРАТЬ -->
             <div class="menu-section">
-                <button id="menuPlayBtn" class="play-btn">▶ ИГРАТЬ</button>
+                <button id="menuPlayBtn" class="play-btn">▶ НАЧАТЬ</button>
             </div>
             
+            <!-- НИЖНЯЯ ПАНЕЛЬ (ЗВУК + РЕКОРД) -->
             <div class="menu-footer">
                 <button id="menuSoundToggle" class="sound-btn">🔊 ЗВУК</button>
                 <div class="menu-record">🏆 РЕКОРД: <span id="menuRecordDisplay">0</span></div>
+            </div>
+
+            <!-- ===== НОВЫЕ БЛОКИ (УПРАВЛЕНИЕ, СОВЕТЫ, КОНТАКТЫ, СТАТУС) ===== -->
+            <div class="menu-footer-links">
+                <!-- БЛОК 1: УПРАВЛЕНИЕ -->
+                <div class="footer-block">
+                    <h4>🎮 УПРАВЛЕНИЕ</h4>
+                    <p><span class="blue">🔵</span> ↑ ↓ ← →</p>
+                    <p><span class="orange">🟠</span> W A S D</p>
+                    <p>⏸ ESC — пауза</p>
+                </div>
+
+                <!-- БЛОК 2: СОВЕТЫ -->
+                <div class="footer-block">
+                    <h4>💡 СОВЕТЫ</h4>
+                    <p>• Не врезайся в следы</p>
+                    <p>• Зажимай противника в угол</p>
+                    <p>• В выживании двигайся по кругу</p>
+                </div>
+
+                <!-- БЛОК 3: КОНТАКТЫ -->
+                <div class="footer-block">
+                    <h4>📬 КОНТАКТЫ</h4>
+                    <p><a href="https://github.com/dubkow1337" target="_blank">GitHub</a></p>
+                    <p><a href="mailto:dubkow14@gmail.com">dubkow14@gmail.com</a></p>
+                </div>
+
+                <!-- БЛОК 4: СТАТУС ПРОЕКТА -->
+                <div class="footer-block">
+                    <h4>📋 СТАТУС</h4>
+                    <p><span style="color: #00ff88;">✅</span> 2 игрока, VS AI, Выживание</p>
+                    <p><span style="color: #00ff88;">✅</span> Классика, Турнир до 3</p>
+                    <p><span style="color: #ffaa00;">⏳</span> Бонусы (в плане)</p>
+                    <p><span style="color: #ffaa00;">⏳</span> Дисковый бой (в плане)</p>
+                </div>
             </div>
         </div>
     </div>
@@ -50,10 +90,10 @@
     <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
     <div id="gameScreen" class="screen">
         <div class="game-wrapper">
-            <!-- Кнопка назад -->
+            <!-- КНОПКА НАЗАД -->
             <button id="backToMenuBtn" class="back-btn">← НАЗАД</button>
             
-            <!-- Счёт -->
+            <!-- СЧЁТ -->
             <div class="game-score">
                 <div class="score blue">
                     <span class="score-label">СИНИЙ</span>
@@ -66,7 +106,7 @@
                 </div>
             </div>
             
-            <!-- Игровое поле -->
+            <!-- ИГРОВОЕ ПОЛЕ -->
             <div class="game-area">
                 <canvas id="gameCanvas" width="1200" height="800"></canvas>
                 <div id="gameMessage" class="game-message"></div>
@@ -75,7 +115,7 @@
         </div>
     </div>
     
-    <!-- Скрипты -->
+    <!-- ===== СКРИПТЫ ===== -->
     <script src="js/utils.js"></script>
     <script src="js/player.js"></script>
     <script src="js/sounds.js"></script>
