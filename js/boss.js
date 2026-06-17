@@ -75,8 +75,7 @@ function spawnBoss() {
         x: x, y: y,
         dirX: dirX,
         dirY: dirY,
-        trail: [],        // ← ОСНОВНОЙ СЛЕД (ЦЕНТР)
-        trailRight: [],   // ← ПРАВАЯ ЛИНИЯ
+        trail: [],        // ← ТОЛЬКО ЦЕНТРАЛЬНАЯ ЛИНИЯ
         alive: true,
         color: '#ff3300',
         trailColor: '#ff2200',
@@ -88,10 +87,8 @@ function spawnBoss() {
         size: BOSS_SIZE
     };
     
-    // Начальные точки
+    // Начальная точка
     boss.trail.push({ x: x, y: y });
-    const offset = 1;
-    boss.trailRight.push({ x: x + boss.dirY * offset, y: y - boss.dirX * offset });
     
     showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
 }
@@ -165,17 +162,9 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // ===== ДВЕ ЛИНИИ: ЦЕНТР И ПРАВАЯ =====
-        // Центральная линия
+        // ===== ТОЛЬКО ЦЕНТРАЛЬНАЯ ЛИНИЯ =====
         boss.trail.push({ x: boss.x, y: boss.y });
         if (boss.trail.length > 100) boss.trail.shift();
-        
-        // Правая линия (смещение вправо от направления движения)
-        const offset = 1;
-        const rightX = boss.x + boss.dirY * offset;
-        const rightY = boss.y - boss.dirX * offset;
-        boss.trailRight.push({ x: rightX, y: rightY });
-        if (boss.trailRight.length > 100) boss.trailRight.shift();
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
         let hitPlayerTrail = false;
