@@ -1,147 +1,287 @@
-// ===== БОСС (LIGHT RUNNER) =====
-if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
-    const trail = boss.trail;
+// ========== БОСС: LIGHT RUNNER (КВОРА) ==========
+
+let boss = null;
+let bossSpawnTimer = 0;
+const BOSS_SPAWN_INTERVAL = 30000;
+const BOSS_MAX_HEALTH = 5;
+const BOSS_SIZE = 2;
+
+function spawnBoss() {
+    if (boss && boss.alive) return;
+    if (typeof players === 'undefined' || !players[0].alive) return;
     
-    // Левая линия (смещение влево от направления движения)
-    ctx.beginPath();
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = boss.trailColor || '#ff2200';
-    ctx.strokeStyle = boss.trailColor || '#ff2200';
+    const player = players[0];
+    let x, y;
+    let attempts = 0;
+    let found = false;
     
-    for (let i = 0; i < trail.length; i++) {
-        const p = trail[i];
-        // Смещение влево (перпендикулярно направлению)
-        let offsetX = 0, offsetY = 0;
-        if (i > 0 && i < trail.length - 1) {
-            const dx = trail[i+1].x - trail[i-1].x;
-            const dy = trail[i+1].y - trail[i-1].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
-            }
-        } else if (i === 0 && trail.length > 1) {
-            const dx = trail[1].x - trail[0].x;
-            const dy = trail[1].y - trail[0].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
-            }
-        } else if (i === trail.length - 1 && trail.length > 1) {
-            const dx = trail[i].x - trail[i-1].x;
-            const dy = trail[i].y - trail[i-1].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
+    while (!found && attempts < 50) {
+        const side = Math.floor(Math.random() * 4);
+        switch(side) {
+            case 0:
+                x = 4 + Math.floor(Math.random() * (WIDTH - 8));
+                y = 3;
+                break;
+            case 1:
+                x = 4 + Math.floor(Math.random() * (WIDTH - 8));
+                y = HEIGHT - 4;
+                break;
+            case 2:
+                x = 3;
+                y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
+                break;
+            case 3:
+                x = WIDTH - 4;
+                y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
+                break;
+        }
+        
+        if (player) {
+            const dx = Math.abs(x - player.x);
+            const dy = Math.abs(y - player.y);
+            if (dx < 4 && dy < 4) {
+                attempts++;
+                continue;
             }
         }
         
-        // Увеличиваем смещение для двойного следа
-        const offsetScale = 1.5;
-        const x = (p.x + offsetX * offsetScale) * CELL_SIZE + CELL_SIZE/2;
-        const y = (p.y + offsetY * offsetScale) * CELL_SIZE + CELL_SIZE/2;
+        if (x < 1 || x >= WIDTH - 2 || y < 1 || y >= HEIGHT - 2) {
+            attempts++;
+            continue;
+        }
         
-        if (i === 0) {
-            ctx.moveTo(x, y);
+        found = true;
+        break;
+    }
+    
+    if (!found) {
+        x = Math.floor(WIDTH / 2);
+        y = Math.floor(HEIGHT / 2);
+    }
+    
+    let dirX = 0, dirY = 0;
+    if (player) {
+        const dx = player.x - x;
+        const dy = player.y - y;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            dirX = dx > 0 ? 1 : -1;
         } else {
-            ctx.lineTo(x, y);
+            dirY = dy > 0 ? 1 : -1;
         }
     }
-    ctx.stroke();
+    if (dirX === 0 && dirY === 0) dirX = 1;
     
-    // Правая линия (смещение вправо от направления движения)
-    ctx.beginPath();
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = boss.trailColor || '#ff2200';
-    ctx.strokeStyle = boss.trailColor || '#ff2200';
+    boss = {
+        x: x, y: y,
+        dirX: dirX,
+        dirY: dirY,
+        trail: [], // ← ОДНА ПОЛОСА
+        alive: true,
+        color: '#ff3300',
+        trailColor: '#ff2200',
+        health: BOSS_MAX_HEALTH,
+        maxHealth: BOSS_MAX_HEALTH,
+        speed: 0.8,
+        spawnProtection: 60,
+        lastDirChange: 0,
+        size: BOSS_SIZE
+    };
     
-    for (let i = 0; i < trail.length; i++) {
-        const p = trail[i];
-        let offsetX = 0, offsetY = 0;
-        if (i > 0 && i < trail.length - 1) {
-            const dx = trail[i+1].x - trail[i-1].x;
-            const dy = trail[i+1].y - trail[i-1].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
-            }
-        } else if (i === 0 && trail.length > 1) {
-            const dx = trail[1].x - trail[0].x;
-            const dy = trail[1].y - trail[0].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
-            }
-        } else if (i === trail.length - 1 && trail.length > 1) {
-            const dx = trail[i].x - trail[i-1].x;
-            const dy = trail[i].y - trail[i-1].y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-                offsetX = -dy / len;
-                offsetY = dx / len;
-            }
-        }
+    // Начальная точка следа
+    boss.trail.push({ x: x, y: y });
+    
+    showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
+}
+
+function updateBoss() {
+    if (!boss || !boss.alive) return;
+    
+    const player = players[0];
+    if (!player.alive) {
+        boss.alive = false;
+        boss = null;
+        return;
+    }
+    
+    if (boss.spawnProtection > 0) {
+        boss.spawnProtection--;
+        return;
+    }
+    
+    // ===== ИИ БОССА =====
+    const dx = player.x - boss.x;
+    const dy = player.y - boss.y;
+    const distToPlayer = Math.hypot(dx, dy);
+    
+    boss.lastDirChange++;
+    if (boss.lastDirChange > 4 + Math.floor(Math.random() * 4)) {
+        boss.lastDirChange = 0;
         
-        const offsetScale = 1.5;
-        const x = (p.x - offsetX * offsetScale) * CELL_SIZE + CELL_SIZE/2;
-        const y = (p.y - offsetY * offsetScale) * CELL_SIZE + CELL_SIZE/2;
+        const futureX = player.x + player.dirX * 5;
+        const futureY = player.y + player.dirY * 5;
         
-        if (i === 0) {
-            ctx.moveTo(x, y);
+        let newDirX = 0, newDirY = 0;
+        if (distToPlayer < 6) {
+            const angle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? 1.2 : -1.2);
+            newDirX = Math.round(Math.cos(angle));
+            newDirY = Math.round(Math.sin(angle));
         } else {
-            ctx.lineTo(x, y);
+            const angle = Math.atan2(futureY - boss.y, futureX - boss.x);
+            const offset = (Math.random() - 0.5) * 0.8;
+            newDirX = Math.round(Math.cos(angle + offset));
+            newDirY = Math.round(Math.sin(angle + offset));
+        }
+        
+        if (newDirX !== 0 && newDirY !== 0) {
+            if (Math.abs(newDirX) > Math.abs(newDirY)) {
+                newDirY = 0;
+            } else {
+                newDirX = 0;
+            }
+        }
+        
+        if (newDirX === 0 && newDirY === 0) {
+            newDirX = 1;
+        }
+        
+        boss.dirX = newDirX;
+        boss.dirY = newDirY;
+    }
+    
+    // Движение
+    for (let step = 0; step < boss.speed; step++) {
+        const newX = boss.x + boss.dirX;
+        const newY = boss.y + boss.dirY;
+        
+        if (newX < 1 || newX >= WIDTH - BOSS_SIZE || newY < 1 || newY >= HEIGHT - BOSS_SIZE) {
+            boss.dirX = -boss.dirX || 1;
+            boss.dirY = -boss.dirY || 1;
+            continue;
+        }
+        
+        boss.x = newX;
+        boss.y = newY;
+        
+        // ===== ОДНА ПОЛОСА (без зигзага) =====
+        boss.trail.push({ x: boss.x, y: boss.y });
+        if (boss.trail.length > 100) boss.trail.shift();
+        
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
+        let hitPlayerTrail = false;
+        const playerTrail = player.trail || [];
+        
+        for (let dx = 0; dx < BOSS_SIZE; dx++) {
+            for (let dy = 0; dy < BOSS_SIZE; dy++) {
+                const bx = boss.x + dx;
+                const by = boss.y + dy;
+                
+                for (let t = 0; t < playerTrail.length - 1; t++) {
+                    if (playerTrail[t].x === bx && playerTrail[t].y === by) {
+                        hitPlayerTrail = true;
+                        break;
+                    }
+                }
+                if (hitPlayerTrail) break;
+            }
+            if (hitPlayerTrail) break;
+        }
+        
+        if (hitPlayerTrail) {
+            boss.health--;
+            if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
+            
+            if (boss.health <= 0) {
+                boss.alive = false;
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        if (typeof explode === 'function') {
+                            explode(
+                                boss.x + (Math.random() - 0.5) * 5,
+                                boss.y + (Math.random() - 0.5) * 5,
+                                '#ff3300'
+                            );
+                        }
+                    }, i * 100);
+                }
+                showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
+                currentSteps += 10;
+                bossSpawnTimer = 0;
+                boss = null;
+                return;
+            } else {
+                showMessage(`💥 LIGHT RUNNER ВРЕЗАЛСЯ В СЛЕД! ❤️ ${boss.health}/${boss.maxHealth}`);
+                boss.dirX = -boss.dirX || 1;
+                boss.dirY = -boss.dirY || 1;
+                continue;
+            }
+        }
+        
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ИГРОКОМ =====
+        for (let dx = 0; dx < BOSS_SIZE; dx++) {
+            for (let dy = 0; dy < BOSS_SIZE; dy++) {
+                const bx = boss.x + dx;
+                const by = boss.y + dy;
+                
+                if (bx === player.x && by === player.y) {
+                    player.alive = false;
+                    if (typeof explode === 'function') explode(player.x, player.y, player.color);
+                    gameActive = false;
+                    showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
+                    if (typeof stopBgMusic === 'function') stopBgMusic();
+                    return;
+                }
+            }
         }
     }
-    ctx.stroke();
+}
+
+function hitBoss() {
+    if (!boss || !boss.alive) return;
     
-    // Корпус босса
-    const size = boss.size || 2;
-    const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
-    const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
+    const player = players[0];
+    if (!player || !player.alive) return;
     
-    ctx.save();
-    ctx.translate(cx, cy);
-    
-    if (boss.dirX === 1) ctx.rotate(0);
-    else if (boss.dirX === -1) ctx.rotate(Math.PI);
-    else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
-    else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
-    
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = boss.color || '#ff3300';
-    
-    ctx.fillStyle = boss.color || '#ff3300';
-    ctx.beginPath();
-    ctx.moveTo(14, 0);
-    ctx.lineTo(-6, -10);
-    ctx.lineTo(-6, -3);
-    ctx.lineTo(-2, 0);
-    ctx.lineTo(-6, 3);
-    ctx.lineTo(-6, 10);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.restore();
-    
-    // Индикатор здоровья
-    if (boss.maxHealth) {
-        const healthBarWidth = 50;
-        const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
-        const healthBarY = boss.y * CELL_SIZE - 14;
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
-        ctx.fillStyle = '#ff3300';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
+    let hit = false;
+    for (let dx = 0; dx < BOSS_SIZE; dx++) {
+        for (let dy = 0; dy < BOSS_SIZE; dy++) {
+            const bx = boss.x + dx;
+            const by = boss.y + dy;
+            if (player.x === bx && player.y === by) {
+                hit = true;
+                break;
+            }
+        }
+        if (hit) break;
     }
+    
+    if (!hit) return;
+    
+    boss.health--;
+    if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
+    
+    if (boss.health <= 0) {
+        boss.alive = false;
+        for (let i = 0; i < 5; i++) {
+            setTimeout(() => {
+                if (typeof explode === 'function') {
+                    explode(
+                        boss.x + (Math.random() - 0.5) * 5,
+                        boss.y + (Math.random() - 0.5) * 5,
+                        '#ff3300'
+                    );
+                }
+            }, i * 100);
+        }
+        showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
+        currentSteps += 10;
+        bossSpawnTimer = 0;
+        boss = null;
+    } else {
+        showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
+    }
+}
+
+function resetBoss() {
+    boss = null;
+    bossSpawnTimer = 0;
 }
