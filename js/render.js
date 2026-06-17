@@ -154,7 +154,7 @@ function draw() {
     
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
-    // ТОЛЬКО ЦЕНТРАЛЬНАЯ ЛИНИЯ
+    // ЦЕНТРАЛЬНАЯ ЛИНИЯ (СМЕЩЕНА В ЦЕНТР КОРПУСА)
     ctx.beginPath();
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
@@ -162,9 +162,17 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
     ctx.shadowBlur = 15;
     ctx.shadowColor = boss.trailColor || '#ff2200';
     ctx.strokeStyle = boss.trailColor || '#ff2200';
-    ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+    
+    // Первая точка с учётом смещения
+    ctx.moveTo(
+        boss.trail[0].x * CELL_SIZE + CELL_SIZE/2,
+        boss.trail[0].y * CELL_SIZE + CELL_SIZE/2
+    );
     for (let i = 1; i < boss.trail.length; i++) {
-        ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.lineTo(
+            boss.trail[i].x * CELL_SIZE + CELL_SIZE/2,
+            boss.trail[i].y * CELL_SIZE + CELL_SIZE/2
+        );
     }
     ctx.stroke();
     
