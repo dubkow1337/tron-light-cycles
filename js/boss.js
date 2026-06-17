@@ -2,7 +2,7 @@
 
 let boss = null;
 let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 30000; // 30 секунд
+const BOSS_SPAWN_INTERVAL = 5000; // 30 секунд
 const BOSS_MAX_HEALTH = 5;
 const BOSS_SIZE = 2; // Размер босса в клетках (2x2)
 
