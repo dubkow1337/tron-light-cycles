@@ -46,7 +46,7 @@ function showVictory(name) {
         showMessage(`🏆 НОВЫЙ РЕКОРД: ${bestRecord} шагов!`);
     }
     
-    // Голос ПОБЕДЫ (оставляем для эпичности)
+    // Голос ПОБЕДЫ
     if (typeof speakVictory === 'function') {
         speakVictory(`${name} победил!`);
     }
@@ -174,6 +174,11 @@ function updateGame() {
 }
 
 function initGame() {
+    // ===== ПРИНУДИТЕЛЬНЫЙ СБРОС ВРАГОВ ПРИ СТАРТЕ =====
+    if (typeof survivalEnemies !== 'undefined') {
+        survivalEnemies = [];
+    }
+    
     if (typeof resetPlayers === 'function') resetPlayers();
     
     if (opponentType === 'survival') {
