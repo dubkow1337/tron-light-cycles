@@ -2,6 +2,7 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+let boss = null; // Для безопасности
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -64,10 +65,12 @@ function drawParticles() {
 function draw() {
     if (!ctx) return;
     
+    // ===== ФОН =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
+    // ===== СЕТКА =====
     ctx.strokeStyle = '#0f3f3a';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
@@ -81,6 +84,7 @@ function draw() {
         ctx.stroke();
     }
     
+    // ===== СЛЕДЫ ИГРОКОВ =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.trail && p.trail.length >= 2) {
@@ -100,6 +104,7 @@ function draw() {
         }
     }
     
+    // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
             if (e.trail && e.trail.length >= 2) {
@@ -117,14 +122,112 @@ function draw() {
                 ctx.stroke();
             }
         }
+        
+        // Враги — ТРЕУГОЛЬНИКИ
         for (let e of survivalEnemies) {
+            const cx = e.x * CELL_SIZE + CELL_SIZE / 2;
+            const cy = e.y * CELL_SIZE + CELL_SIZE / 2;
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            // Поворот в сторону движения
+            if (e.dirX === 1) ctx.rotate(0);
+            else if (e.dirX === -1) ctx.rotate(Math.PI);
+            else if (e.dirY === -1) ctx.rotate(-Math.PI / 2);
+            else if (e.dirY === 1) ctx.rotate(Math.PI / 2);
+            
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = e.color;
             ctx.fillStyle = e.color;
-            ctx.fillRect(e.x * CELL_SIZE, e.y * CELL_SIZE, CELL_SIZE - 4, CELL_SIZE - 4);
+            
+            // Треугольник (острая стрелка)
+            ctx.beginPath();
+            ctx.moveTo(8, 0);
+            ctx.lineTo(-4, -5);
+            ctx.lineTo(-4, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
         }
     }
     
+    // ===== БОСС (LIGHT RUNNER) =====
+    if (typeof boss !== 'undefined' && boss && boss.alive) {
+        // След босса (двойной, толще)
+        if (boss.trail && boss.trail.length >= 2) {
+            ctx.beginPath();
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = boss.trailColor || '#ff2200';
+            ctx.strokeStyle = boss.trailColor || '#ff2200';
+            ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+            for (let i = 1; i < boss.trail.length; i++) {
+                ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+            }
+            ctx.stroke();
+        }
+        
+        // Корпус босса (вытянутый, как у Кворы)
+        const cx = boss.x * CELL_SIZE + CELL_SIZE / 2;
+        const cy = boss.y * CELL_SIZE + CELL_SIZE / 2;
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        
+        if (boss.dirX === 1) ctx.rotate(0);
+        else if (boss.dirX === -1) ctx.rotate(Math.PI);
+        else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
+        else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
+        
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = boss.color || '#ff3300';
+        
+        // Корпус (вытянутый)
+        ctx.fillStyle = boss.color || '#ff3300';
+        ctx.beginPath();
+        ctx.moveTo(14, 0);
+        ctx.lineTo(-6, -8);
+        ctx.lineTo(-6, -3);
+        ctx.lineTo(-2, 0);
+        ctx.lineTo(-6, 3);
+        ctx.lineTo(-6, 8);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Белые фары
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(8, -3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(8, 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+        
+        // Индикатор здоровья босса (над ним)
+        if (boss.maxHealth) {
+            const healthBarWidth = 40;
+            const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + CELL_SIZE/2;
+            const healthBarY = boss.y * CELL_SIZE - 12;
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
+            ctx.fillStyle = '#ff3300';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
+        }
+    }
+    
+    // ===== ЧАСТИЦЫ =====
     drawParticles();
     
+    // ===== ЭФФЕКТ СТОЛКНОВЕНИЯ =====
     if (crashEffect.active) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ffffff';
@@ -134,43 +237,52 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // БОНУСЫ (ЕСЛИ ЕСТЬ)
+    // ===== БОНУСЫ (ЕСЛИ ЕСТЬ) =====
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
     
+    // ===== МОТОЦИКЛЫ ИГРОКОВ =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.alive) {
                 const cx = p.x * CELL_SIZE + CELL_SIZE / 2;
                 const cy = p.y * CELL_SIZE + CELL_SIZE / 2;
+                
                 ctx.save();
                 ctx.translate(cx, cy);
+                
                 if (p.dirX === 1) ctx.rotate(0);
                 else if (p.dirX === -1) ctx.rotate(Math.PI);
                 else if (p.dirY === -1) ctx.rotate(-Math.PI / 2);
                 else if (p.dirY === 1) ctx.rotate(Math.PI / 2);
+                
                 ctx.shadowBlur = 12 + 3 * Math.sin(Date.now() * 0.01);
                 ctx.shadowColor = p.color;
                 ctx.fillStyle = p.color;
+                
                 ctx.beginPath();
                 ctx.moveTo(10, 0);
                 ctx.lineTo(-5, -7);
                 ctx.lineTo(-5, 7);
                 ctx.closePath();
                 ctx.fill();
+                
                 ctx.fillStyle = '#ffffff';
+                ctx.shadowBlur = 0;
                 ctx.beginPath();
                 ctx.moveTo(5, 0);
                 ctx.lineTo(-2, -3);
                 ctx.lineTo(-2, 3);
                 ctx.closePath();
                 ctx.fill();
+                
                 ctx.restore();
             }
         }
     }
     
+    // ===== ОБРАТНЫЙ ОТСЧЁТ =====
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
@@ -188,10 +300,14 @@ function draw() {
         }
     }
     
+    // ===== ПАУЗА =====
     if (paused && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ffffff';
         ctx.fillStyle = '#ffffff';
         ctx.fillText('⏸ ПАУЗА', canvas.width/2 - 70, canvas.height/2);
     }
+    
     ctx.shadowBlur = 0;
 }
