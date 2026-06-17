@@ -154,18 +154,18 @@ function draw() {
     
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // ЛЕВАЯ ЛИНИЯ
-    if (boss.trailLeft && boss.trailLeft.length >= 2) {
+    // ЦЕНТРАЛЬНАЯ ЛИНИЯ
+    if (boss.trail && boss.trail.length >= 2) {
         ctx.beginPath();
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 10;
         ctx.shadowColor = boss.trailColor || '#ff2200';
         ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trailLeft[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trailLeft.length; i++) {
-            ctx.lineTo(boss.trailLeft[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailLeft[i].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+        for (let i = 1; i < boss.trail.length; i++) {
+            ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
         }
         ctx.stroke();
     }
@@ -202,15 +202,14 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     ctx.shadowBlur = 25;
     ctx.shadowColor = boss.color || '#ff3300';
     
-    // Корпус (большой, 3x3)
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
-    ctx.moveTo(20, 0);       // нос
-    ctx.lineTo(-10, -14);    // левое крыло
-    ctx.lineTo(-10, -5);     // левая фара
-    ctx.lineTo(-6, 0);       // середина
-    ctx.lineTo(-10, 5);      // правая фара
-    ctx.lineTo(-10, 14);     // правое крыло
+    ctx.moveTo(20, 0);
+    ctx.lineTo(-10, -14);
+    ctx.lineTo(-10, -5);
+    ctx.lineTo(-6, 0);
+    ctx.lineTo(-10, 5);
+    ctx.lineTo(-10, 14);
     ctx.closePath();
     ctx.fill();
     
