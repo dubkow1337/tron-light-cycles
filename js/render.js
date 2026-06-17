@@ -153,38 +153,20 @@ function draw() {
     }
     
 // ===== БОСС (LIGHT RUNNER) =====
-if (typeof boss !== 'undefined' && boss && boss.alive) {
-    // ЦЕНТРАЛЬНАЯ ЛИНИЯ
-    if (boss.trail && boss.trail.length >= 2) {
-        ctx.beginPath();
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = boss.trailColor || '#ff2200';
-        ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trail.length; i++) {
-            ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
-        }
-        ctx.stroke();
+if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
+    // ТОЛЬКО ЦЕНТРАЛЬНАЯ ЛИНИЯ
+    ctx.beginPath();
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = boss.trailColor || '#ff2200';
+    ctx.strokeStyle = boss.trailColor || '#ff2200';
+    ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+    for (let i = 1; i < boss.trail.length; i++) {
+        ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
     }
-    
-    // ПРАВАЯ ЛИНИЯ
-    if (boss.trailRight && boss.trailRight.length >= 2) {
-        ctx.beginPath();
-        ctx.lineWidth = 4;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 12;
-        ctx.shadowColor = boss.trailColor || '#ff2200';
-        ctx.strokeStyle = boss.trailColor || '#ff2200';
-        ctx.moveTo(boss.trailRight[0].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[0].y * CELL_SIZE + CELL_SIZE/2);
-        for (let i = 1; i < boss.trailRight.length; i++) {
-            ctx.lineTo(boss.trailRight[i].x * CELL_SIZE + CELL_SIZE/2, boss.trailRight[i].y * CELL_SIZE + CELL_SIZE/2);
-        }
-        ctx.stroke();
-    }
+    ctx.stroke();
     
     // КОРПУС БОССА (3x3)
     const size = boss.size || 3;
