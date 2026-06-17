@@ -2,7 +2,6 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
-let boss = null; // Для безопасности
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
