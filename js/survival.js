@@ -2,7 +2,7 @@
 
 let survivalEnemies = [];
 let spawnTimer = 0;
-const SPAWN_INTERVAL = 8000; // 8 секунд между появлением новых
+const SPAWN_INTERVAL = 4000; // 4 секунд между появлением новых
 const MAX_ENEMIES = 10; // максимум врагов на поле (можно увеличить)
 
 function spawnSurvivalEnemies() {
