@@ -2,13 +2,14 @@
 
 let survivalEnemies = [];
 let spawnTimer = 0;
-const SPAWN_INTERVAL = 2000; // 2 секунд между появлением новых
-const MAX_ENEMIES = 10; // максимум врагов на поле (можно увеличить)
+let lastSpawnTime = 0; // ← НОВЫЙ ТАЙМЕР НА РЕАЛЬНОМ ВРЕМЕНИ
+const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
+const MAX_ENEMIES = 20;
 
 function spawnSurvivalEnemies() {
     survivalEnemies = [];
     spawnTimer = 0;
-    // Первая волна — 3 врага
+    lastSpawnTime = Date.now(); // ← ЗАПОМИНАЕМ ВРЕМЯ СТАРТА
     for (let i = 0; i < 3; i++) {
         spawnSingleEnemy();
     }
@@ -41,7 +42,6 @@ function spawnSingleEnemy() {
             break;
     }
     
-    // Не спавним на игроке
     if (player && Math.abs(x - player.x) < 4 && Math.abs(y - player.y) < 4) {
         x = (x + 5) % WIDTH;
         y = (y + 5) % HEIGHT;
@@ -73,18 +73,16 @@ function updateSurvival() {
         return;
     }
     
-    // ===== СПАВН НОВЫХ ВРАГОВ (КАЖДЫЕ 8 СЕКУНД) =====
-    if (typeof spawnTimer !== 'undefined') {
-        spawnTimer += 16;
-        if (spawnTimer >= SPAWN_INTERVAL) {
-            spawnTimer = 0;
-            // Спавним 1-2 врага за раз
-            const count = Math.random() > 0.5 ? 1 : 2;
-            for (let i = 0; i < count; i++) {
-                spawnSingleEnemy();
-            }
-            showMessage(`⚠️ НОВЫЙ ВРАГ! (${survivalEnemies.filter(e => e.alive).length} всего)`);
+    // ===== СПАВН НОВЫХ ВРАГОВ ПО РЕАЛЬНОМУ ВРЕМЕНИ =====
+    const now = Date.now();
+    if (now - lastSpawnTime > SPAWN_INTERVAL) {
+        lastSpawnTime = now;
+        const count = Math.random() > 0.5 ? 1 : 2;
+        for (let i = 0; i < count; i++) {
+            spawnSingleEnemy();
         }
+        const aliveCount = survivalEnemies.filter(e => e.alive).length;
+        showMessage(`⚠️ НОВЫЙ ВРАГ! (${aliveCount} всего)`);
     }
     
     // ===== КОМАНДНАЯ ЛОГИКА =====
@@ -93,7 +91,6 @@ function updateSurvival() {
     
     if (enemyCount === 0) return;
     
-    // Центр группы
     let centerX = 0, centerY = 0;
     for (let e of aliveEnemies) {
         centerX += e.x;
@@ -119,9 +116,7 @@ function updateSurvival() {
         let targetX = player.x;
         let targetY = player.y;
         
-        // Тактика в зависимости от роли
         if (e.role === 'hunter' && enemyCount >= 2) {
-            // Лидер преследует, но не лезет на рожон
             if (distToPlayer < 4) {
                 targetX = e.x - dx * 0.5;
                 targetY = e.y - dy * 0.5;
@@ -130,7 +125,6 @@ function updateSurvival() {
                 targetY = player.y;
             }
         } else {
-            // Фланговые заходят сбоку
             const angle = Math.atan2(dy, dx);
             const flankAngle = angle + (Math.random() > 0.5 ? 1 : -1) * 1.2;
             const futureX = player.x + player.dirX * 4;
@@ -168,7 +162,6 @@ function updateSurvival() {
             }
         }
         
-        // Проверка безопасности
         let newX = e.x + newDirX;
         let newY = e.y + newDirY;
         let isSafe = true;
@@ -209,7 +202,6 @@ function updateSurvival() {
             e.trail.shift();
         }
         
-        // ===== ПРОВЕРКА СМЕРТИ ВРАГА =====
         let enemyDied = false;
         
         if (e.x < 0 || e.x >= WIDTH || e.y < 0 || e.y >= HEIGHT) {
@@ -268,4 +260,5 @@ function updateSurvival() {
 
 function resetSurvivalTimer() {
     spawnTimer = 0;
+    lastSpawnTime = Date.now();
 }
