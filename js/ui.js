@@ -12,7 +12,6 @@ function showScreen(screenId) {
     const screen = document.getElementById(screenId);
     if (screen) screen.classList.add('active');
     
-    // Скрываем/показываем видео в зависимости от экрана
     const bgVideo = document.getElementById('bgVideo');
     if (bgVideo) {
         if (screenId === 'gameScreen') {
@@ -102,7 +101,7 @@ function setupEventListeners() {
         });
     }
     
-    // ===== КНОПКА НАЗАД =====
+    // ===== КНОПКА НАЗАД (С ОЧИСТКОЙ ВРАГОВ) =====
     const backBtn = document.getElementById('backToMenuBtn');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -112,6 +111,12 @@ function setupEventListeners() {
             }
             if (typeof gameActive !== 'undefined') gameActive = false;
             paused = false;
+            
+            // ===== ОЧИЩАЕМ ВРАГОВ ПРИ ВЫХОДЕ =====
+            if (typeof survivalEnemies !== 'undefined') {
+                survivalEnemies = [];
+            }
+            
             showScreen('menuScreen');
             const recordDisplay = document.getElementById('menuRecordDisplay');
             if (recordDisplay && typeof bestRecord !== 'undefined') {
@@ -174,8 +179,13 @@ function updateUI() {
     const p2Score = document.getElementById('gamePlayer2Score');
     
     if (p1Score) {
-        p1Score.innerText = matchMode === 'tournament' ? tournamentScore[0] : players[0].score;
+        if (opponentType === 'survival') {
+            p1Score.innerText = currentSteps || 0;
+        } else {
+            p1Score.innerText = matchMode === 'tournament' ? tournamentScore[0] : players[0].score;
+        }
     }
+    
     if (p2Score) {
         if (opponentType === 'survival') {
             p2Score.innerText = survivalEnemies.length;
