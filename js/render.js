@@ -154,29 +154,36 @@ function draw() {
     
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
-    // ЦЕНТРАЛЬНАЯ ЛИНИЯ (СМЕЩЕНА В ЦЕНТР КОРПУСА)
+    const trail = boss.trail;
+    
+    // ===== 1. ТОЛСТАЯ ЛИНИЯ (ОСНОВА) =====
     ctx.beginPath();
-    ctx.lineWidth = 5;
+    ctx.lineWidth = CELL_SIZE; // ← ТОЛЩИНА В КЛЕТКУ!
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.shadowBlur = 15;
     ctx.shadowColor = boss.trailColor || '#ff2200';
     ctx.strokeStyle = boss.trailColor || '#ff2200';
-    
-    // Первая точка с учётом смещения
-    ctx.moveTo(
-        boss.trail[0].x * CELL_SIZE + CELL_SIZE/2,
-        boss.trail[0].y * CELL_SIZE + CELL_SIZE/2
-    );
-    for (let i = 1; i < boss.trail.length; i++) {
-        ctx.lineTo(
-            boss.trail[i].x * CELL_SIZE + CELL_SIZE/2,
-            boss.trail[i].y * CELL_SIZE + CELL_SIZE/2
-        );
+    ctx.moveTo(trail[0].x * CELL_SIZE + CELL_SIZE/2, trail[0].y * CELL_SIZE + CELL_SIZE/2);
+    for (let i = 1; i < trail.length; i++) {
+        ctx.lineTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
     }
     ctx.stroke();
     
-    // КОРПУС БОССА (3x3)
+    // ===== 2. ПРОЗРАЧНЫЙ ЗАЗОР (ПОВЕРХ ТОЛСТОЙ ЛИНИИ) =====
+    ctx.beginPath();
+    ctx.lineWidth = 4; // ← ТОЛЩИНА ЗАЗОРА (можно менять)
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 0; // ← БЕЗ СВЕЧЕНИЯ
+    ctx.strokeStyle = '#03050a'; // ← ЦВЕТ ФОНА (НЕВИДИМАЯ ЛИНИЯ)
+    ctx.moveTo(trail[0].x * CELL_SIZE + CELL_SIZE/2, trail[0].y * CELL_SIZE + CELL_SIZE/2);
+    for (let i = 1; i < trail.length; i++) {
+        ctx.lineTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
+    }
+    ctx.stroke();
+    
+    // ===== 3. КОРПУС БОССА (3x3) =====
     const size = boss.size || 3;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -205,7 +212,7 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
     
     ctx.restore();
     
-    // Индикатор здоровья
+    // ===== 4. ИНДИКАТОР ЗДОРОВЬЯ =====
     if (boss.maxHealth) {
         const healthBarWidth = 60;
         const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
