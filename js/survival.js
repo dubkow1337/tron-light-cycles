@@ -2,17 +2,27 @@
 
 let survivalEnemies = [];
 let spawnTimer = 0;
-let lastSpawnTime = 0; // ← НОВЫЙ ТАЙМЕР НА РЕАЛЬНОМ ВРЕМЕНИ
+let lastSpawnTime = 0;
 const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
 const MAX_ENEMIES = 20;
 
 function spawnSurvivalEnemies() {
     survivalEnemies = [];
     spawnTimer = 0;
-    lastSpawnTime = Date.now(); // ← ЗАПОМИНАЕМ ВРЕМЯ СТАРТА
+    lastSpawnTime = Date.now();
+    
+    // Первая волна — 3 врага
     for (let i = 0; i < 3; i++) {
         spawnSingleEnemy();
     }
+    
+    // ===== БОСС ПОЯВЛЯЕТСЯ ЧЕРЕЗ 2 СЕКУНДЫ =====
+    setTimeout(() => {
+        if (typeof spawnBoss === 'function' && players[0] && players[0].alive) {
+            spawnBoss();
+            showMessage('⚠️ LIGHT RUNNER ПРИБЫВАЕТ!');
+        }
+    }, 2000);
 }
 
 function spawnSingleEnemy() {
@@ -73,7 +83,7 @@ function updateSurvival() {
         return;
     }
     
-    // ===== СПАВН НОВЫХ ВРАГОВ ПО РЕАЛЬНОМУ ВРЕМЕНИ =====
+    // ===== СПАВН НОВЫХ ВРАГОВ =====
     const now = Date.now();
     if (now - lastSpawnTime > SPAWN_INTERVAL) {
         lastSpawnTime = now;
@@ -256,23 +266,23 @@ function updateSurvival() {
     }
     
     survivalEnemies = survivalEnemies.filter(e => e.alive);
+    
+    // ===== УПРАВЛЕНИЕ БОССОМ =====
+    if (typeof boss !== 'undefined') {
+        if (bossSpawnTimer === undefined) {
+            bossSpawnTimer = 0;
+        }
+        bossSpawnTimer += 16;
+        if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
+            bossSpawnTimer = 0;
+            if (typeof spawnBoss === 'function') spawnBoss();
+        }
+        
+        if (typeof updateBoss === 'function') updateBoss();
+    }
 }
 
 function resetSurvivalTimer() {
     spawnTimer = 0;
     lastSpawnTime = Date.now();
-}
-
-// ===== УПРАВЛЕНИЕ БОССОМ =====
-if (typeof boss !== 'undefined') {
-    if (bossSpawnTimer === undefined) {
-        bossSpawnTimer = 0;
-    }
-    bossSpawnTimer += 16;
-    if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
-        bossSpawnTimer = 0;
-        if (typeof spawnBoss === 'function') spawnBoss();
-    }
-    
-    if (typeof updateBoss === 'function') updateBoss();
 }
