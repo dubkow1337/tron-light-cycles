@@ -469,3 +469,80 @@ body {
         text-align: center;
     }
 }
+
+/* ===== ВЕРХНЯЯ ПАНЕЛЬ В ИГРЕ ===== */
+.game-top-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+}
+
+.back-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #ff5555;
+    color: #ff5555;
+    padding: 8px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    z-index: 50;
+}
+
+.back-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #ff5555, 0 0 50px rgba(255, 85, 85, 0.15);
+}
+
+.restart-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #00ff88;
+    color: #00ff88;
+    padding: 8px 20px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    z-index: 50;
+}
+
+.restart-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px #00ff88, 0 0 50px rgba(0, 255, 136, 0.15);
+}
+
+/* ===== АДАПТАЦИЯ ДЛЯ ПЛАНШЕТОВ И ТЕЛЕФОНОВ ===== */
+@media (max-width: 800px) {
+    .game-top-panel {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+    .back-btn, .restart-btn {
+        font-size: 11px;
+        padding: 6px 14px;
+    }
+    .game-score {
+        font-size: 14px;
+        padding: 4px 12px;
+        gap: 10px;
+        order: 2; /* ставим счёт между кнопками на узких экранах */
+    }
+    .back-btn {
+        order: 1;
+    }
+    .restart-btn {
+        order: 3;
+    }
+}
