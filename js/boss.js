@@ -1,219 +1,288 @@
-// ========== БОСС: LIGHT RUNNER (КВОРА) ==========
+// ========== РЕЖИМ ВЫЖИВАНИЯ (БЕСКОНЕЧНОЕ НАКОПЛЕНИЕ) ==========
 
-let boss = null;
-let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 5000; // 30 секунд
-const BOSS_MAX_HEALTH = 5;
-const BOSS_SIZE = 2; // Размер босса в клетках (2x2)
+let survivalEnemies = [];
+let spawnTimer = 0;
+let lastSpawnTime = 0;
+const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
+const MAX_ENEMIES = 20;
 
-function spawnBoss() {
-    if (boss && boss.alive) return;
+function spawnSurvivalEnemies() {
+    survivalEnemies = [];
+    spawnTimer = 0;
+    lastSpawnTime = Date.now();
+    
+    // Первая волна — 3 врага
+    for (let i = 0; i < 3; i++) {
+        spawnSingleEnemy();
+    }
+    
+    // ===== БОСС ПОЯВЛЯЕТСЯ ЧЕРЕЗ 2 СЕКУНДЫ =====
+    setTimeout(() => {
+        if (typeof spawnBoss === 'function' && players[0] && players[0].alive) {
+            spawnBoss();
+            showMessage('⚠️ LIGHT RUNNER ПРИБЫВАЕТ!');
+        }
+    }, 2000);
+}
+
+function spawnSingleEnemy() {
     if (typeof players === 'undefined' || !players[0].alive) return;
+    if (survivalEnemies.filter(e => e.alive).length >= MAX_ENEMIES) return;
     
     const player = players[0];
-    
-    // Ищем безопасное место для спавна (не на стене, не на игроке)
+    const side = Math.floor(Math.random() * 4);
     let x, y;
-    let attempts = 0;
-    let found = false;
     
-    while (!found && attempts < 50) {
-        const side = Math.floor(Math.random() * 4);
-        switch(side) {
-            case 0: // сверху
-                x = 4 + Math.floor(Math.random() * (WIDTH - 8));
-                y = 3;
-                break;
-            case 1: // снизу
-                x = 4 + Math.floor(Math.random() * (WIDTH - 8));
-                y = HEIGHT - 4;
-                break;
-            case 2: // слева
-                x = 3;
-                y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
-                break;
-            case 3: // справа
-                x = WIDTH - 4;
-                y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
-                break;
-        }
-        
-        // Проверяем, что босс не на игроке
-        if (player) {
-            const dx = Math.abs(x - player.x);
-            const dy = Math.abs(y - player.y);
-            if (dx < 4 && dy < 4) {
-                attempts++;
-                continue;
-            }
-        }
-        
-        // Проверяем, что босс не на стене
-        if (x < 1 || x >= WIDTH - 2 || y < 1 || y >= HEIGHT - 2) {
-            attempts++;
-            continue;
-        }
-        
-        found = true;
-        break;
+    switch(side) {
+        case 0:
+            x = 5 + Math.floor(Math.random() * (WIDTH - 10));
+            y = 2;
+            break;
+        case 1:
+            x = 5 + Math.floor(Math.random() * (WIDTH - 10));
+            y = HEIGHT - 3;
+            break;
+        case 2:
+            x = 2;
+            y = 5 + Math.floor(Math.random() * (HEIGHT - 10));
+            break;
+        case 3:
+            x = WIDTH - 3;
+            y = 5 + Math.floor(Math.random() * (HEIGHT - 10));
+            break;
     }
     
-    if (!found) {
-        // Если не нашли место — спавним по центру
-        x = Math.floor(WIDTH / 2);
-        y = Math.floor(HEIGHT / 2);
+    if (player && Math.abs(x - player.x) < 4 && Math.abs(y - player.y) < 4) {
+        x = (x + 5) % WIDTH;
+        y = (y + 5) % HEIGHT;
     }
     
-    boss = {
+    const colors = ['#ff3366', '#ff6633', '#ff9933', '#ff33aa', '#ffaa33', '#ff5555', '#ff8844'];
+    const trailColors = ['#882222', '#884422', '#886622', '#882266', '#886622', '#884444', '#886633'];
+    const colorIndex = Math.floor(Math.random() * colors.length);
+    
+    survivalEnemies.push({
         x: x, y: y,
         dirX: 0,
         dirY: 0,
-        trail: [],
+        trail: [{ x: x, y: y }],
         alive: true,
-        color: '#ff3300',
-        trailColor: '#ff2200',
-        health: BOSS_MAX_HEALTH,
-        maxHealth: BOSS_MAX_HEALTH,
-        speed: 1.3,
-        doubleTrail: true,
-        spawnProtection: 60,
-        lastDirChange: 0,
-        size: BOSS_SIZE // Размер 2x2
-    };
-    
-    // Начальный след
-    for (let dx = 0; dx < BOSS_SIZE; dx++) {
-        for (let dy = 0; dy < BOSS_SIZE; dy++) {
-            boss.trail.push({ x: x + dx, y: y + dy });
-        }
-    }
-    
-    showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
+        color: colors[colorIndex],
+        trailColor: trailColors[colorIndex],
+        spawnProtection: 30,
+        role: Math.random() > 0.6 ? 'hunter' : 'flanker'
+    });
 }
 
-function updateBoss() {
-    if (!boss || !boss.alive) return;
+function updateSurvival() {
+    if (opponentType !== 'survival') return;
     
     const player = players[0];
     if (!player.alive) {
-        boss.alive = false;
-        boss = null;
+        survivalEnemies = [];
         return;
     }
     
-    // Снимаем защиту после спавна
-    if (boss.spawnProtection > 0) {
-        boss.spawnProtection--;
-        return;
+    // ===== СПАВН НОВЫХ ВРАГОВ =====
+    const now = Date.now();
+    if (now - lastSpawnTime > SPAWN_INTERVAL) {
+        lastSpawnTime = now;
+        const count = Math.random() > 0.5 ? 1 : 2;
+        for (let i = 0; i < count; i++) {
+            spawnSingleEnemy();
+        }
+        const aliveCount = survivalEnemies.filter(e => e.alive).length;
+        showMessage(`⚠️ НОВЫЙ ВРАГ! (${aliveCount} всего)`);
     }
     
-    // ===== ИИ БОССА =====
-    const dx = player.x - boss.x;
-    const dy = player.y - boss.y;
-    const distToPlayer = Math.hypot(dx, dy);
+    // ===== КОМАНДНАЯ ЛОГИКА =====
+    const aliveEnemies = survivalEnemies.filter(e => e.alive);
+    const enemyCount = aliveEnemies.length;
     
-    boss.lastDirChange++;
-    if (boss.lastDirChange > 4 + Math.floor(Math.random() * 4)) {
-        boss.lastDirChange = 0;
+    if (enemyCount === 0) return;
+    
+    let centerX = 0, centerY = 0;
+    for (let e of aliveEnemies) {
+        centerX += e.x;
+        centerY += e.y;
+    }
+    if (enemyCount > 0) {
+        centerX /= enemyCount;
+        centerY /= enemyCount;
+    }
+    
+    for (let i = 0; i < survivalEnemies.length; i++) {
+        let e = survivalEnemies[i];
+        if (!e.alive) continue;
         
-        const futureX = player.x + player.dirX * 5;
-        const futureY = player.y + player.dirY * 5;
-        
-        if (distToPlayer < 6) {
-            const angle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? 1.2 : -1.2);
-            boss.dirX = Math.round(Math.cos(angle));
-            boss.dirY = Math.round(Math.sin(angle));
-        } else {
-            const angle = Math.atan2(futureY - boss.y, futureX - boss.x);
-            const offset = (Math.random() - 0.5) * 0.8;
-            boss.dirX = Math.round(Math.cos(angle + offset));
-            boss.dirY = Math.round(Math.sin(angle + offset));
+        if (e.spawnProtection > 0) {
+            e.spawnProtection--;
         }
         
-        if (boss.dirX === 0 && boss.dirY === 0) {
-            boss.dirX = 1;
+        const dx = player.x - e.x;
+        const dy = player.y - e.y;
+        const distToPlayer = Math.hypot(dx, dy);
+        
+        let targetX = player.x;
+        let targetY = player.y;
+        
+        if (e.role === 'hunter' && enemyCount >= 2) {
+            if (distToPlayer < 4) {
+                targetX = e.x - dx * 0.5;
+                targetY = e.y - dy * 0.5;
+            } else {
+                targetX = player.x;
+                targetY = player.y;
+            }
+        } else {
+            const angle = Math.atan2(dy, dx);
+            const flankAngle = angle + (Math.random() > 0.5 ? 1 : -1) * 1.2;
+            const futureX = player.x + player.dirX * 4;
+            const futureY = player.y + player.dirY * 4;
+            targetX = futureX + Math.cos(flankAngle) * 4;
+            targetY = futureY + Math.sin(flankAngle) * 4;
+        }
+        
+        targetX = Math.max(1, Math.min(WIDTH - 2, targetX));
+        targetY = Math.max(1, Math.min(HEIGHT - 2, targetY));
+        
+        const targetDx = targetX - e.x;
+        const targetDy = targetY - e.y;
+        const distToTarget = Math.hypot(targetDx, targetDy);
+        
+        let newDirX = e.dirX;
+        let newDirY = e.dirY;
+        
+        if (distToTarget > 0.5) {
+            const prob = Math.random();
+            if (prob < 0.1) {
+                const dirs = [
+                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+                    { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
+                ];
+                const dir = dirs[Math.floor(Math.random() * dirs.length)];
+                newDirX = dir.dx;
+                newDirY = dir.dy;
+            } else if (Math.abs(targetDx) > Math.abs(targetDy)) {
+                newDirX = targetDx > 0 ? 1 : -1;
+                newDirY = 0;
+            } else {
+                newDirX = 0;
+                newDirY = targetDy > 0 ? 1 : -1;
+            }
+        }
+        
+        let newX = e.x + newDirX;
+        let newY = e.y + newDirY;
+        let isSafe = true;
+        
+        for (let t of e.trail) {
+            if (t.x === newX && t.y === newY) { isSafe = false; break; }
+        }
+        
+        if (!isSafe) {
+            const altDirs = [
+                { dx: newDirY, dy: -newDirX },
+                { dx: -newDirY, dy: newDirX },
+                { dx: -newDirX, dy: -newDirY }
+            ];
+            for (let alt of altDirs) {
+                const testX = e.x + alt.dx;
+                const testY = e.y + alt.dy;
+                let altSafe = true;
+                for (let t of e.trail) {
+                    if (t.x === testX && t.y === testY) { altSafe = false; break; }
+                }
+                if (altSafe) {
+                    newDirX = alt.dx;
+                    newDirY = alt.dy;
+                    break;
+                }
+            }
+        }
+        
+        e.dirX = newDirX;
+        e.dirY = newDirY;
+        
+        e.x += e.dirX;
+        e.y += e.dirY;
+        e.trail.push({ x: e.x, y: e.y });
+        
+        if (e.trail.length > 30) {
+            e.trail.shift();
+        }
+        
+        let enemyDied = false;
+        
+        if (e.x < 0 || e.x >= WIDTH || e.y < 0 || e.y >= HEIGHT) {
+            enemyDied = true;
+        }
+        
+        if (!enemyDied) {
+            for (let t = 0; t < e.trail.length - 2; t++) {
+                if (e.trail[t].x === e.x && e.trail[t].y === e.y) {
+                    enemyDied = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!enemyDied) {
+            for (let other of survivalEnemies) {
+                if (other === e || !other.alive) continue;
+                for (let t = 0; t < other.trail.length - 1; t++) {
+                    if (other.trail[t].x === e.x && other.trail[t].y === e.y) {
+                        enemyDied = true;
+                        break;
+                    }
+                }
+                if (enemyDied) break;
+            }
+        }
+        
+        if (!enemyDied && e.spawnProtection === 0) {
+            for (let t = 0; t < player.trail.length - 1; t++) {
+                if (player.trail[t].x === e.x && player.trail[t].y === e.y) {
+                    enemyDied = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!enemyDied && e.spawnProtection === 0 && e.x === player.x && e.y === player.y) {
+            player.alive = false;
+            enemyDied = true;
+            if (typeof explode === 'function') explode(player.x, player.y, player.color);
+            gameActive = false;
+            showMessage('ВЫ ПРОИГРАЛИ! Нажмите ИГРАТЬ');
+            if (typeof stopBgMusic === 'function') stopBgMusic();
+            return;
+        }
+        
+        if (enemyDied) {
+            e.alive = false;
+            if (typeof explode === 'function') explode(e.x, e.y, e.color);
         }
     }
     
-    // Движение с учётом размера 2x2
-    for (let step = 0; step < boss.speed; step++) {
-        const newX = boss.x + boss.dirX;
-        const newY = boss.y + boss.dirY;
-        
-        // Проверяем, что босс не выходит за границы (с учётом размера)
-        if (newX < 1 || newX >= WIDTH - BOSS_SIZE || newY < 1 || newY >= HEIGHT - BOSS_SIZE) {
-            // Разворачиваемся
-            boss.dirX = -boss.dirX || 1;
-            boss.dirY = -boss.dirY || 1;
-            continue;
+    survivalEnemies = survivalEnemies.filter(e => e.alive);
+    
+    // ===== УПРАВЛЕНИЕ БОССОМ =====
+    if (typeof boss !== 'undefined') {
+        if (bossSpawnTimer === undefined) {
+            bossSpawnTimer = 0;
+        }
+        bossSpawnTimer += 16;
+        if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
+            bossSpawnTimer = 0;
+            if (typeof spawnBoss === 'function') spawnBoss();
         }
         
-        boss.x = newX;
-        boss.y = newY;
-        
-        // Двойной след для большого босса
-        if (boss.doubleTrail) {
-            for (let dx = 0; dx < BOSS_SIZE; dx++) {
-                for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                    boss.trail.push({ x: boss.x + dx, y: boss.y + dy });
-                }
-            }
-        } else {
-            boss.trail.push({ x: boss.x, y: boss.y });
-        }
-        
-        if (boss.trail.length > 60) {
-            boss.trail.splice(0, 20);
-        }
-        
-        // Проверка столкновения с игроком (с учётом размера)
-        for (let dx = 0; dx < BOSS_SIZE; dx++) {
-            for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                const bx = boss.x + dx;
-                const by = boss.y + dy;
-                
-                if (bx === player.x && by === player.y) {
-                    player.alive = false;
-                    if (typeof explode === 'function') explode(player.x, player.y, player.color);
-                    gameActive = false;
-                    showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
-                    if (typeof stopBgMusic === 'function') stopBgMusic();
-                    return;
-                }
-            }
-        }
+        if (typeof updateBoss === 'function') updateBoss();
     }
 }
 
-function hitBoss() {
-    if (!boss || !boss.alive) return;
-    
-    boss.health--;
-    if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
-    
-    if (boss.health <= 0) {
-        boss.alive = false;
-        for (let i = 0; i < 5; i++) {
-            setTimeout(() => {
-                if (typeof explode === 'function') {
-                    explode(
-                        boss.x + (Math.random() - 0.5) * 5,
-                        boss.y + (Math.random() - 0.5) * 5,
-                        '#ff3300'
-                    );
-                }
-            }, i * 100);
-        }
-        showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
-        currentSteps += 10;
-        bossSpawnTimer = 0;
-        boss = null;
-    } else {
-        showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
-    }
-}
-
-function resetBoss() {
-    boss = null;
-    bossSpawnTimer = 0;
+function resetSurvivalTimer() {
+    spawnTimer = 0;
+    lastSpawnTime = Date.now();
 }
