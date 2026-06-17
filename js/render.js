@@ -152,76 +152,77 @@ function draw() {
         }
     }
     
-    // ===== БОСС (LIGHT RUNNER) =====
-    if (typeof boss !== 'undefined' && boss && boss.alive) {
-        // След босса (двойной, толще)
-        if (boss.trail && boss.trail.length >= 2) {
-            ctx.beginPath();
-            ctx.lineWidth = 4;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = boss.trailColor || '#ff2200';
-            ctx.strokeStyle = boss.trailColor || '#ff2200';
-            ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-            for (let i = 1; i < boss.trail.length; i++) {
-                ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
-            }
-            ctx.stroke();
+ // ===== БОСС (LIGHT RUNNER) =====
+if (typeof boss !== 'undefined' && boss && boss.alive) {
+    // След босса
+    if (boss.trail && boss.trail.length >= 2) {
+        ctx.beginPath();
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = boss.trailColor || '#ff2200';
+        ctx.strokeStyle = boss.trailColor || '#ff2200';
+        ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+        for (let i = 1; i < boss.trail.length; i++) {
+            ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
         }
-        
-        // Корпус босса (вытянутый, как у Кворы)
-        const cx = boss.x * CELL_SIZE + CELL_SIZE / 2;
-        const cy = boss.y * CELL_SIZE + CELL_SIZE / 2;
-        
-        ctx.save();
-        ctx.translate(cx, cy);
-        
-        if (boss.dirX === 1) ctx.rotate(0);
-        else if (boss.dirX === -1) ctx.rotate(Math.PI);
-        else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
-        else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
-        
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = boss.color || '#ff3300';
-        
-        // Корпус (вытянутый)
-        ctx.fillStyle = boss.color || '#ff3300';
-        ctx.beginPath();
-        ctx.moveTo(14, 0);
-        ctx.lineTo(-6, -8);
-        ctx.lineTo(-6, -3);
-        ctx.lineTo(-2, 0);
-        ctx.lineTo(-6, 3);
-        ctx.lineTo(-6, 8);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Белые фары
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(8, -3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(8, 3, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        ctx.restore();
-        
-        // Индикатор здоровья босса (над ним)
-        if (boss.maxHealth) {
-            const healthBarWidth = 40;
-            const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + CELL_SIZE/2;
-            const healthBarY = boss.y * CELL_SIZE - 12;
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
-            ctx.fillStyle = '#ff3300';
-            ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
-        }
+        ctx.stroke();
     }
+    
+    // Корпус босса (2x2 клетки)
+    const size = boss.size || 2;
+    const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
+    const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
+    
+    ctx.save();
+    ctx.translate(cx, cy);
+    
+    if (boss.dirX === 1) ctx.rotate(0);
+    else if (boss.dirX === -1) ctx.rotate(Math.PI);
+    else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
+    else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
+    
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = boss.color || '#ff3300';
+    
+    // Корпус (большой, 2x2)
+    ctx.fillStyle = boss.color || '#ff3300';
+    ctx.beginPath();
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-8, -12);
+    ctx.lineTo(-8, -4);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-8, 4);
+    ctx.lineTo(-8, 12);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Белые фары
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(10, -5, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(10, 5, 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+    
+    // Индикатор здоровья
+    if (boss.maxHealth) {
+        const healthBarWidth = 50;
+        const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
+        const healthBarY = boss.y * CELL_SIZE - 14;
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
+        ctx.fillStyle = '#ff3300';
+        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
+    }
+}
     
     // ===== ЧАСТИЦЫ =====
     drawParticles();
