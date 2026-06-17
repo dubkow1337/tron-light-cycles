@@ -143,7 +143,7 @@ function updateGame() {
                     if (dist < CELL_SIZE/2) {
                         p.alive = false;
                         crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-                        if (typeof explode === 'function') explode(p.x, y: p.y, p.color);
+                        if (typeof explode === 'function') explode(p.x, p.y, p.color);
                         break;
                     }
                 }
