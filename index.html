@@ -90,30 +90,32 @@
     <!-- ===== ИГРОВОЙ ЭКРАН ===== -->
     <div id="gameScreen" class="screen">
         <div class="game-wrapper">
-            <!-- КНОПКА НАЗАД -->
-            <button id="backToMenuBtn" class="back-btn">← НАЗАД</button>
-            
-            <!-- СЧЁТ -->
-            <div class="game-score">
-                <div class="score blue">
-                    <span class="score-label">СИНИЙ</span>
-                    <span id="gamePlayer1Score" class="score-value">0</span>
-                </div>
-                <div class="score-divider">:</div>
-                <div class="score orange">
-                    <span class="score-label">ОРАНЖЕВЫЙ</span>
-                    <span id="gamePlayer2Score" class="score-value">0</span>
-                </div>
+    <!-- ВЕРХНЯЯ ПАНЕЛЬ: СЧЁТ + КНОПКИ -->
+    <div class="game-top-panel">
+        <button id="backToMenuBtn" class="back-btn">← НАЗАД</button>
+        
+        <div class="game-score">
+            <div class="score blue">
+                <span class="score-label">СИНИЙ</span>
+                <span id="gamePlayer1Score" class="score-value">0</span>
             </div>
-            
-            <!-- ИГРОВОЕ ПОЛЕ -->
-            <div class="game-area">
-                <canvas id="gameCanvas" width="1200" height="800"></canvas>
-                <div id="gameMessage" class="game-message"></div>
-                <div id="victoryOverlay" class="victory-overlay"></div>
+            <div class="score-divider">:</div>
+            <div class="score orange">
+                <span class="score-label">ОРАНЖЕВЫЙ</span>
+                <span id="gamePlayer2Score" class="score-value">0</span>
             </div>
         </div>
+
+        <button id="restartGameBtn" class="restart-btn">⟳ ИГРАТЬ СНОВА</button>
     </div>
+    
+    <!-- ИГРОВОЕ ПОЛЕ -->
+    <div class="game-area">
+        <canvas id="gameCanvas" width="1200" height="800"></canvas>
+        <div id="gameMessage" class="game-message"></div>
+        <div id="victoryOverlay" class="victory-overlay"></div>
+    </div>
+</div>
     
     <!-- ===== СКРИПТЫ ===== -->
     <script src="js/utils.js"></script>
