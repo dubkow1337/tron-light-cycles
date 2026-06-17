@@ -2,7 +2,7 @@
 
 let boss = null;
 let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 30000; // 30 секунд
+const BOSS_SPAWN_INTERVAL = 30000;
 const BOSS_MAX_HEALTH = 5;
 const BOSS_SIZE = 2;
 
@@ -61,10 +61,10 @@ function spawnBoss() {
     
     boss = {
         x: x, y: y,
-        dirX: 0,
+        dirX: 1,
         dirY: 0,
-        trailLeft: [],  // ← ЛЕВАЯ ЛИНИЯ
-        trailRight: [], // ← ПРАВАЯ ЛИНИЯ
+        trailLeft: [],
+        trailRight: [],
         alive: true,
         color: '#ff3300',
         trailColor: '#ff2200',
@@ -76,15 +76,44 @@ function spawnBoss() {
         size: BOSS_SIZE
     };
     
-    // Начальные линии
+    // Начальные линии (смещение в зависимости от направления)
+    updateBossTrail();
+    
+    showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
+}
+
+// ===== ФУНКЦИЯ ДЛЯ ПРАВИЛЬНОГО ДВОЙНОГО СЛЕДА =====
+function updateBossTrail() {
+    if (!boss || !boss.alive) return;
+    
+    // Определяем перпендикулярное направление (влево/вправо от движения)
+    let perpX = -boss.dirY;
+    let perpY = boss.dirX;
+    
+    // Если босс стоит на месте — не добавляем следы
+    if (boss.dirX === 0 && boss.dirY === 0) return;
+    
+    // Левая линия (смещение влево от направления движения)
+    const leftX = boss.x + perpX;
+    const leftY = boss.y + perpY;
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
         for (let dy = 0; dy < BOSS_SIZE; dy++) {
-            boss.trailLeft.push({ x: x + dx, y: y + dy - 1 });
-            boss.trailRight.push({ x: x + dx, y: y + dy + 1 });
+            boss.trailLeft.push({ x: leftX + dx, y: leftY + dy });
         }
     }
     
-    showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
+    // Правая линия (смещение вправо от направления движения)
+    const rightX = boss.x - perpX;
+    const rightY = boss.y - perpY;
+    for (let dx = 0; dx < BOSS_SIZE; dx++) {
+        for (let dy = 0; dy < BOSS_SIZE; dy++) {
+            boss.trailRight.push({ x: rightX + dx, y: rightY + dy });
+        }
+    }
+    
+    // Ограничиваем длину
+    if (boss.trailLeft.length > 80) boss.trailLeft.splice(0, 20);
+    if (boss.trailRight.length > 80) boss.trailRight.splice(0, 20);
 }
 
 function updateBoss() {
@@ -125,6 +154,16 @@ function updateBoss() {
             boss.dirY = Math.round(Math.sin(angle + offset));
         }
         
+        // Нормализуем направление (только 4 направления)
+        if (boss.dirX !== 0 && boss.dirY !== 0) {
+            // Если диагональ — выбираем главное направление
+            if (Math.abs(boss.dirX) > Math.abs(boss.dirY)) {
+                boss.dirY = 0;
+            } else {
+                boss.dirX = 0;
+            }
+        }
+        
         if (boss.dirX === 0 && boss.dirY === 0) {
             boss.dirX = 1;
         }
@@ -144,31 +183,8 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // ===== ДВЕ ПАРАЛЛЕЛЬНЫЕ ЛИНИИ =====
-        const perpX = -boss.dirY;
-        const perpY = boss.dirX;
-        
-        // Левая линия (смещение влево)
-        const leftX = boss.x + perpX;
-        const leftY = boss.y + perpY;
-        for (let dx = 0; dx < BOSS_SIZE; dx++) {
-            for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                boss.trailLeft.push({ x: leftX + dx, y: leftY + dy });
-            }
-        }
-        
-        // Правая линия (смещение вправо)
-        const rightX = boss.x - perpX;
-        const rightY = boss.y - perpY;
-        for (let dx = 0; dx < BOSS_SIZE; dx++) {
-            for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                boss.trailRight.push({ x: rightX + dx, y: rightY + dy });
-            }
-        }
-        
-        // Ограничиваем длину следов
-        if (boss.trailLeft.length > 80) boss.trailLeft.splice(0, 20);
-        if (boss.trailRight.length > 80) boss.trailRight.splice(0, 20);
+        // ===== ДОБАВЛЯЕМ СЛЕД (ДВЕ ПАРАЛЛЕЛЬНЫЕ ЛИНИИ) =====
+        updateBossTrail();
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
         let hitPlayerTrail = false;
@@ -288,4 +304,4 @@ function hitBoss() {
 function resetBoss() {
     boss = null;
     bossSpawnTimer = 0;
-                    }
+    }
