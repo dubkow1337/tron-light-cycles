@@ -186,8 +186,8 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
         ctx.stroke();
     }
     
-    // Корпус босса
-    const size = boss.size || 2;
+    // КОРПУС БОССА (3x3)
+    const size = boss.size || 3;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
     
@@ -202,14 +202,15 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     ctx.shadowBlur = 25;
     ctx.shadowColor = boss.color || '#ff3300';
     
+    // Корпус (большой, 3x3)
     ctx.fillStyle = boss.color || '#ff3300';
     ctx.beginPath();
-    ctx.moveTo(16, 0);
-    ctx.lineTo(-8, -12);
-    ctx.lineTo(-8, -4);
-    ctx.lineTo(-4, 0);
-    ctx.lineTo(-8, 4);
-    ctx.lineTo(-8, 12);
+    ctx.moveTo(20, 0);       // нос
+    ctx.lineTo(-10, -14);    // левое крыло
+    ctx.lineTo(-10, -5);     // левая фара
+    ctx.lineTo(-6, 0);       // середина
+    ctx.lineTo(-10, 5);      // правая фара
+    ctx.lineTo(-10, 14);     // правое крыло
     ctx.closePath();
     ctx.fill();
     
@@ -217,9 +218,9 @@ if (typeof boss !== 'undefined' && boss && boss.alive) {
     
     // Индикатор здоровья
     if (boss.maxHealth) {
-        const healthBarWidth = 50;
+        const healthBarWidth = 60;
         const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
-        const healthBarY = boss.y * CELL_SIZE - 14;
+        const healthBarY = boss.y * CELL_SIZE - 16;
         ctx.shadowBlur = 0;
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
