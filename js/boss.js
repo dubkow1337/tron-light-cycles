@@ -2,17 +2,15 @@
 
 let boss = null;
 let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 30000; // 30 секунд
+const BOSS_SPAWN_INTERVAL = 30000;
 const BOSS_MAX_HEALTH = 5;
-const BOSS_SIZE = 2; // Размер босса в клетках (2x2)
+const BOSS_SIZE = 2;
 
 function spawnBoss() {
     if (boss && boss.alive) return;
     if (typeof players === 'undefined' || !players[0].alive) return;
     
     const player = players[0];
-    
-    // Ищем безопасное место для спавна (не на стене, не на игроке)
     let x, y;
     let attempts = 0;
     let found = false;
@@ -20,25 +18,24 @@ function spawnBoss() {
     while (!found && attempts < 50) {
         const side = Math.floor(Math.random() * 4);
         switch(side) {
-            case 0: // сверху
+            case 0:
                 x = 4 + Math.floor(Math.random() * (WIDTH - 8));
                 y = 3;
                 break;
-            case 1: // снизу
+            case 1:
                 x = 4 + Math.floor(Math.random() * (WIDTH - 8));
                 y = HEIGHT - 4;
                 break;
-            case 2: // слева
+            case 2:
                 x = 3;
                 y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
                 break;
-            case 3: // справа
+            case 3:
                 x = WIDTH - 4;
                 y = 4 + Math.floor(Math.random() * (HEIGHT - 8));
                 break;
         }
         
-        // Проверяем, что босс не на игроке
         if (player) {
             const dx = Math.abs(x - player.x);
             const dy = Math.abs(y - player.y);
@@ -48,7 +45,6 @@ function spawnBoss() {
             }
         }
         
-        // Проверяем, что босс не на стене
         if (x < 1 || x >= WIDTH - 2 || y < 1 || y >= HEIGHT - 2) {
             attempts++;
             continue;
@@ -59,14 +55,13 @@ function spawnBoss() {
     }
     
     if (!found) {
-        // Если не нашли место — спавним по центру
         x = Math.floor(WIDTH / 2);
         y = Math.floor(HEIGHT / 2);
     }
     
     boss = {
         x: x, y: y,
-        dirX: 0,
+        dirX: 1,
         dirY: 0,
         trail: [],
         alive: true,
@@ -74,14 +69,14 @@ function spawnBoss() {
         trailColor: '#ff2200',
         health: BOSS_MAX_HEALTH,
         maxHealth: BOSS_MAX_HEALTH,
-        speed: 1.3,
+        speed: 1.0,
         doubleTrail: true,
         spawnProtection: 60,
         lastDirChange: 0,
-        size: BOSS_SIZE // Размер 2x2
+        size: BOSS_SIZE,
+        moveCounter: 0 // ← счётчик для плавности
     };
     
-    // Начальный след
     for (let dx = 0; dx < BOSS_SIZE; dx++) {
         for (let dy = 0; dy < BOSS_SIZE; dy++) {
             boss.trail.push({ x: x + dx, y: y + dy });
@@ -101,85 +96,82 @@ function updateBoss() {
         return;
     }
     
-    // Снимаем защиту после спавна
     if (boss.spawnProtection > 0) {
         boss.spawnProtection--;
         return;
     }
     
-    // ===== ИИ БОССА =====
-    const dx = player.x - boss.x;
-    const dy = player.y - boss.y;
-    const distToPlayer = Math.hypot(dx, dy);
+    // ===== ПЛАВНОЕ ДВИЖЕНИЕ =====
+    boss.moveCounter++;
     
-    boss.lastDirChange++;
-    if (boss.lastDirChange > 4 + Math.floor(Math.random() * 4)) {
-        boss.lastDirChange = 0;
+    // Меняем направление реже (каждые 10-15 шагов)
+    if (boss.moveCounter % 10 === 0) {
+        const dx = player.x - boss.x;
+        const dy = player.y - boss.y;
+        const distToPlayer = Math.hypot(dx, dy);
         
-        const futureX = player.x + player.dirX * 5;
-        const futureY = player.y + player.dirY * 5;
-        
-        if (distToPlayer < 6) {
+        // Если далеко — идём к игроку
+        if (distToPlayer > 5) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                boss.dirX = dx > 0 ? 1 : -1;
+                boss.dirY = 0;
+            } else {
+                boss.dirX = 0;
+                boss.dirY = dy > 0 ? 1 : -1;
+            }
+        } else {
+            // Если близко — уходим в сторону (фланговый манёвр)
             const angle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? 1.2 : -1.2);
             boss.dirX = Math.round(Math.cos(angle));
             boss.dirY = Math.round(Math.sin(angle));
-        } else {
-            const angle = Math.atan2(futureY - boss.y, futureX - boss.x);
-            const offset = (Math.random() - 0.5) * 0.8;
-            boss.dirX = Math.round(Math.cos(angle + offset));
-            boss.dirY = Math.round(Math.sin(angle + offset));
-        }
-        
-        if (boss.dirX === 0 && boss.dirY === 0) {
-            boss.dirX = 1;
+            if (boss.dirX === 0 && boss.dirY === 0) {
+                boss.dirX = 1;
+            }
         }
     }
     
-    // Движение с учётом размера 2x2
-    for (let step = 0; step < boss.speed; step++) {
-        const newX = boss.x + boss.dirX;
-        const newY = boss.y + boss.dirY;
-        
-        // Проверяем, что босс не выходит за границы (с учётом размера)
-        if (newX < 1 || newX >= WIDTH - BOSS_SIZE || newY < 1 || newY >= HEIGHT - BOSS_SIZE) {
-            // Разворачиваемся
-            boss.dirX = -boss.dirX || 1;
-            boss.dirY = -boss.dirY || 1;
-            continue;
-        }
-        
-        boss.x = newX;
-        boss.y = newY;
-        
-        // Двойной след для большого босса
-        if (boss.doubleTrail) {
-            for (let dx = 0; dx < BOSS_SIZE; dx++) {
-                for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                    boss.trail.push({ x: boss.x + dx, y: boss.y + dy });
-                }
-            }
-        } else {
-            boss.trail.push({ x: boss.x, y: boss.y });
-        }
-        
-        if (boss.trail.length > 60) {
-            boss.trail.splice(0, 20);
-        }
-        
-        // Проверка столкновения с игроком (с учётом размера)
+    // Движение (каждый шаг)
+    const newX = boss.x + boss.dirX;
+    const newY = boss.y + boss.dirY;
+    
+    // Проверка границ
+    if (newX < 1 || newX >= WIDTH - BOSS_SIZE || newY < 1 || newY >= HEIGHT - BOSS_SIZE) {
+        boss.dirX = -boss.dirX || 1;
+        boss.dirY = -boss.dirY || 1;
+        return;
+    }
+    
+    boss.x = newX;
+    boss.y = newY;
+    
+    // След
+    if (boss.doubleTrail) {
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
             for (let dy = 0; dy < BOSS_SIZE; dy++) {
-                const bx = boss.x + dx;
-                const by = boss.y + dy;
-                
-                if (bx === player.x && by === player.y) {
-                    player.alive = false;
-                    if (typeof explode === 'function') explode(player.x, player.y, player.color);
-                    gameActive = false;
-                    showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
-                    if (typeof stopBgMusic === 'function') stopBgMusic();
-                    return;
-                }
+                boss.trail.push({ x: boss.x + dx, y: boss.y + dy });
+            }
+        }
+    } else {
+        boss.trail.push({ x: boss.x, y: boss.y });
+    }
+    
+    if (boss.trail.length > 60) {
+        boss.trail.splice(0, 20);
+    }
+    
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ИГРОКОМ =====
+    for (let dx = 0; dx < BOSS_SIZE; dx++) {
+        for (let dy = 0; dy < BOSS_SIZE; dy++) {
+            const bx = boss.x + dx;
+            const by = boss.y + dy;
+            
+            if (bx === player.x && by === player.y) {
+                player.alive = false;
+                if (typeof explode === 'function') explode(player.x, player.y, player.color);
+                gameActive = false;
+                showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
+                if (typeof stopBgMusic === 'function') stopBgMusic();
+                return;
             }
         }
     }
