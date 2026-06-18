@@ -2,6 +2,7 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+let boss = null; // Для безопасности
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -50,6 +51,7 @@ function updateParticles() {
             i--;
         }
     }
+    updateFireworks(); // ← обновляем салют
 }
 
 function drawParticles() {
@@ -122,115 +124,83 @@ function draw() {
             }
         }
         
-        // Враги — ТРЕУГОЛЬНИКИ
+        // Враги — треугольники
         for (let e of survivalEnemies) {
             const cx = e.x * CELL_SIZE + CELL_SIZE / 2;
             const cy = e.y * CELL_SIZE + CELL_SIZE / 2;
-            
             ctx.save();
             ctx.translate(cx, cy);
-            
-            // Поворот в сторону движения
             if (e.dirX === 1) ctx.rotate(0);
             else if (e.dirX === -1) ctx.rotate(Math.PI);
             else if (e.dirY === -1) ctx.rotate(-Math.PI / 2);
             else if (e.dirY === 1) ctx.rotate(Math.PI / 2);
-            
             ctx.shadowBlur = 8;
             ctx.shadowColor = e.color;
             ctx.fillStyle = e.color;
-            
-            // Треугольник (острая стрелка)
             ctx.beginPath();
             ctx.moveTo(8, 0);
             ctx.lineTo(-4, -5);
             ctx.lineTo(-4, 5);
             ctx.closePath();
             ctx.fill();
-            
             ctx.restore();
         }
     }
     
-// ===== БОСС (LIGHT RUNNER) =====
-if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
-    const trail = boss.trail;
-    const trailLength = trail.length;
-    
-    // ===== 1. ОРАНЖЕВАЯ ЛИНИЯ С ЗАТУХАНИЕМ В ХВОСТЕ =====
-    for (let i = 0; i < trailLength - 1; i++) {
-        // i = 0 — самый старый след (хвост), i = trailLength-1 — свежий след (у босса)
-        const age = i / trailLength; // 0 — хвост, 1 — босс
-        const alpha = Math.pow(age, 0.7); // ← плавное затухание: у хвоста ~0, у босса ~1
+    // ===== БОСС =====
+    if (typeof boss !== 'undefined' && boss && boss.alive) {
+        if (boss.trail && boss.trail.length >= 2) {
+            ctx.beginPath();
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = boss.trailColor || '#ff2200';
+            ctx.strokeStyle = boss.trailColor || '#ff2200';
+            ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
+            for (let i = 1; i < boss.trail.length; i++) {
+                ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
+            }
+            ctx.stroke();
+        }
         
+        const size = boss.size || 3;
+        const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
+        const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
+        ctx.save();
+        ctx.translate(cx, cy);
+        if (boss.dirX === 1) ctx.rotate(0);
+        else if (boss.dirX === -1) ctx.rotate(Math.PI);
+        else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
+        else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = boss.color || '#ff3300';
+        ctx.fillStyle = boss.color || '#ff3300';
         ctx.beginPath();
-        ctx.lineWidth = CELL_SIZE + 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 15 * alpha;
-        ctx.shadowColor = '#ff8800';
-        ctx.strokeStyle = `rgba(255, 136, 0, ${alpha})`;
-        ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
-        ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
-        ctx.stroke();
-    }
-    
-    // ===== 2. ПРОЗРАЧНЫЙ ПРОБОР (синхронно с линией) =====
-    for (let i = 0; i < trailLength - 1; i++) {
-        const age = i / trailLength;
-        const alpha = Math.pow(age, 0.7);
+        ctx.moveTo(20, 0);
+        ctx.lineTo(-10, -14);
+        ctx.lineTo(-10, -5);
+        ctx.lineTo(-6, 0);
+        ctx.lineTo(-10, 5);
+        ctx.lineTo(-10, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
         
-        ctx.beginPath();
-        ctx.lineWidth = 8;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = `rgba(3, 5, 10, ${alpha})`;
-        ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
-        ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
-        ctx.stroke();
+        if (boss.maxHealth) {
+            const healthBarWidth = 60;
+            const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
+            const healthBarY = boss.y * CELL_SIZE - 16;
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
+            ctx.fillStyle = '#ff3300';
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
+        }
     }
     
-    // ===== 3. КОРПУС БОССА (КРАСНЫЙ) =====
-    const size = boss.size || 3;
-    const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
-    const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
-    
-    ctx.save();
-    ctx.translate(cx, cy);
-    
-    if (boss.dirX === 1) ctx.rotate(0);
-    else if (boss.dirX === -1) ctx.rotate(Math.PI);
-    else if (boss.dirY === -1) ctx.rotate(-Math.PI / 2);
-    else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
-    
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = '#ff2200';
-    ctx.fillStyle = '#ff2200';
-    ctx.beginPath();
-    ctx.moveTo(20, 0);
-    ctx.lineTo(-10, -14);
-    ctx.lineTo(-10, -5);
-    ctx.lineTo(-6, 0);
-    ctx.lineTo(-10, 5);
-    ctx.lineTo(-10, 14);
-    ctx.closePath();
-    ctx.fill();
-    
-    ctx.restore();
-    
-    // ===== 4. ИНДИКАТОР ЗДОРОВЬЯ =====
-    if (boss.maxHealth) {
-        const healthBarWidth = 60;
-        const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
-        const healthBarY = boss.y * CELL_SIZE - 16;
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth, 4);
-        ctx.fillStyle = '#ff3300';
-        ctx.fillRect(healthBarX, healthBarY, healthBarWidth * (boss.health / boss.maxHealth), 4);
-    }
-}
+    // ===== САЛЮТ (рисовать перед мотоциклами, чтобы был фоном, но можно и поверх) =====
+    drawFireworks();
     
     // ===== ЧАСТИЦЫ =====
     drawParticles();
@@ -245,7 +215,7 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // ===== БОНУСЫ (ЕСЛИ ЕСТЬ) =====
+    // ===== БОНУСЫ =====
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
@@ -256,26 +226,21 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
             if (p.alive) {
                 const cx = p.x * CELL_SIZE + CELL_SIZE / 2;
                 const cy = p.y * CELL_SIZE + CELL_SIZE / 2;
-                
                 ctx.save();
                 ctx.translate(cx, cy);
-                
                 if (p.dirX === 1) ctx.rotate(0);
                 else if (p.dirX === -1) ctx.rotate(Math.PI);
                 else if (p.dirY === -1) ctx.rotate(-Math.PI / 2);
                 else if (p.dirY === 1) ctx.rotate(Math.PI / 2);
-                
                 ctx.shadowBlur = 12 + 3 * Math.sin(Date.now() * 0.01);
                 ctx.shadowColor = p.color;
                 ctx.fillStyle = p.color;
-                
                 ctx.beginPath();
                 ctx.moveTo(10, 0);
                 ctx.lineTo(-5, -7);
                 ctx.lineTo(-5, 7);
                 ctx.closePath();
                 ctx.fill();
-                
                 ctx.fillStyle = '#ffffff';
                 ctx.shadowBlur = 0;
                 ctx.beginPath();
@@ -284,7 +249,6 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
                 ctx.lineTo(-2, 3);
                 ctx.closePath();
                 ctx.fill();
-                
                 ctx.restore();
             }
         }
@@ -317,5 +281,82 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
         ctx.fillText('⏸ ПАУЗА', canvas.width/2 - 70, canvas.height/2);
     }
     
+    ctx.shadowBlur = 0;
+}
+
+// ========== САЛЮТ ПРИ ПОБЕДЕ ==========
+
+let fireworkParticles = [];
+let fireworkActive = false;
+
+function startFireworks(color, count = 6) {
+    fireworkParticles = [];
+    fireworkActive = true;
+    const colors = color === '#00ffff' ? ['#00ffff', '#0088ff', '#00ffcc'] : ['#ffaa00', '#ff6600', '#ffcc44'];
+    
+    for (let burst = 0; burst < count; burst++) {
+        setTimeout(() => {
+            // Слева
+            const x1 = 50 + Math.random() * 100;
+            const y1 = 50 + Math.random() * (canvas.height - 100);
+            createFireworkBurst(x1, y1, colors);
+            // Справа
+            const x2 = canvas.width - 50 - Math.random() * 100;
+            const y2 = 50 + Math.random() * (canvas.height - 100);
+            createFireworkBurst(x2, y2, colors);
+        }, burst * 300);
+    }
+    
+    setTimeout(() => {
+        fireworkActive = false;
+        fireworkParticles = [];
+    }, 5000);
+}
+
+function createFireworkBurst(x, y, colors) {
+    const count = 40 + Math.floor(Math.random() * 30);
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 2 + Math.random() * 3;
+        fireworkParticles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            decay: 0.005 + Math.random() * 0.01,
+            color: color,
+            size: size
+        });
+    }
+}
+
+function updateFireworks() {
+    if (!fireworkActive) return;
+    for (let i = fireworkParticles.length - 1; i >= 0; i--) {
+        const p = fireworkParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.03;
+        p.vx *= 0.99;
+        p.life -= p.decay;
+        if (p.life <= 0) {
+            fireworkParticles.splice(i, 1);
+        }
+    }
+}
+
+function drawFireworks() {
+    if (!fireworkActive || fireworkParticles.length === 0) return;
+    for (const p of fireworkParticles) {
+        ctx.globalAlpha = p.life;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = p.color;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
     ctx.shadowBlur = 0;
 }
