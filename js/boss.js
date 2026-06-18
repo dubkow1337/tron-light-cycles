@@ -1,8 +1,6 @@
 // ========== БОСС: LIGHT RUNNER (КВОРА) ==========
 
 let boss = null;
-let bossSpawnTimer = 0;
-const BOSS_SPAWN_INTERVAL = 30000;
 const BOSS_MAX_HEALTH = 5;
 const BOSS_SIZE = 3;
 
@@ -85,15 +83,11 @@ function spawnBoss() {
         spawnProtection: 60,
         lastDirChange: 0,
         size: BOSS_SIZE,
-        trailOffsetX: 0,
-        trailOffsetY: 0
+        trailOffsetX: Math.floor(BOSS_SIZE / 2),
+        trailOffsetY: Math.floor(BOSS_SIZE / 2)
     };
     
-    // Вычисляем смещение для центральной линии (центр 3x3 = смещение +1)
-    boss.trailOffsetX = Math.floor(BOSS_SIZE / 2);
-    boss.trailOffsetY = Math.floor(BOSS_SIZE / 2);
-    
-    // Начальная точка следа (центр босса)
+    // Начальная точка следа
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
@@ -170,7 +164,7 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // ===== ЦЕНТРАЛЬНАЯ ЛИНИЯ (СМЕЩЕНИЕ В ЦЕНТР 3x3) =====
+        // ===== ЦЕНТРАЛЬНАЯ ЛИНИЯ =====
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
@@ -215,7 +209,6 @@ function updateBoss() {
                 }
                 showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
                 currentSteps += 10;
-                bossSpawnTimer = 0;
                 boss = null;
                 return;
             } else {
@@ -284,7 +277,6 @@ function hitBoss() {
         }
         showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
         currentSteps += 10;
-        bossSpawnTimer = 0;
         boss = null;
     } else {
         showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
@@ -293,5 +285,4 @@ function hitBoss() {
 
 function resetBoss() {
     boss = null;
-    bossSpawnTimer = 0;
-    }
+}
