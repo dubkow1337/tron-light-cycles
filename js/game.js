@@ -8,13 +8,10 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
-// Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
 let bonusSlowActive = false;
 let bonusNoTrailActive = false;
-
-// spawnTimer объявлен в survival.js
 
 function showVictory(name) {
     const overlay = document.getElementById('victoryOverlay');
@@ -24,10 +21,14 @@ function showVictory(name) {
         setTimeout(() => overlay.classList.remove('show'), 2000);
     }
     
-    // ===== САЛЮТ ПРИ ПОБЕДЕ =====
-    if (typeof startFireworks === 'function') {
-        const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
-        startFireworks(color, 6);
+    // ===== САЛЮТ (с защитой) =====
+    try {
+        if (typeof startFireworks === 'function') {
+            const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
+            startFireworks(color, 6);
+        }
+    } catch(e) {
+        console.warn('Салют не сработал:', e);
     }
     
     if (matchMode === 'tournament') {
@@ -60,24 +61,20 @@ function showVictory(name) {
 }
 
 function updateGame() {
-    // Обновляем салют (даже если игра не активна, частицы продолжают лететь)
-    if (typeof updateFireworks === 'function') updateFireworks();
+    // Обновляем салют (безопасно)
+    try {
+        if (typeof updateFireworks === 'function') updateFireworks();
+    } catch(e) {}
     
     if (!gameActive) return;
     
-    // ===== РЕЖИМ ГОНКИ =====
     if (matchMode === 'race') {
-        if (typeof updateRace === 'function') {
-            updateRace();
-        }
-        if (typeof drawRace === 'function') {
-            drawRace();
-        }
+        if (typeof updateRace === 'function') updateRace();
+        if (typeof drawRace === 'function') drawRace();
         updateUI();
         return;
     }
     
-    // ===== ОБЫЧНЫЕ РЕЖИМЫ =====
     for (let p of players) {
         if (!p.alive) continue;
         p.x += p.dirX;
@@ -100,18 +97,13 @@ function updateGame() {
     
     for (let p of players) {
         if (!p.alive) continue;
-        
-        if (bonusShieldActive && p === players[0]) {
-            continue;
-        }
-        
+        if (bonusShieldActive && p === players[0]) continue;
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
             if (typeof explode === 'function') explode(p.x, p.y, p.color);
             continue;
         }
-        
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -121,7 +113,6 @@ function updateGame() {
             }
         }
         if (!p.alive) continue;
-        
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -141,7 +132,6 @@ function updateGame() {
             }
             if (!p.alive) break;
         }
-        
         if (!p.alive) continue;
         if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
@@ -188,9 +178,7 @@ function updateGame() {
     
     if (opponentType === 'survival' && !players[0].alive) {
         gameActive = false;
-        if (typeof survivalEnemies !== 'undefined') {
-            survivalEnemies = [];
-        }
+        if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
         showMessage('ВЫ ПРОИГРАЛИ! Нажмите ИГРАТЬ');
         if (typeof stopBgMusic === 'function') stopBgMusic();
         return;
@@ -202,13 +190,8 @@ function updateGame() {
 }
 
 function initGame() {
-    if (typeof survivalEnemies !== 'undefined') {
-        survivalEnemies = [];
-    }
-    if (typeof spawnTimer !== 'undefined') {
-        spawnTimer = 0;
-    }
-    
+    if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
+    if (typeof spawnTimer !== 'undefined') spawnTimer = 0;
     if (typeof resetPlayers === 'function') resetPlayers();
     
     if (opponentType === 'survival') {
@@ -223,7 +206,6 @@ function initGame() {
     crashEffect.active = false;
     particles = [];
     currentSteps = 0;
-    
     updateUI();
     if (typeof draw === 'function') draw();
     
@@ -252,7 +234,6 @@ function initGame() {
             countdownActive = false;
             paused = false;
             if (typeof playBgMusic === 'function') playBgMusic();
-            
             if (gameLoop) clearInterval(gameLoop);
             gameLoop = setInterval(() => {
                 if (paused || !gameActive) return;
