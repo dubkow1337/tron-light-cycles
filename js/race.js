@@ -18,9 +18,9 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
-    obstacleSpeed: 0.8, // ← БЫСТРЕЕ (было 0.3)
+    obstacleSpeed: 0.8,
     aiSpeed: 0.5,
-    spawnRate: 0.04 // ← ЧАЩЕ (было 0.025)
+    spawnRate: 0.04
 };
 
 function initRace() {
@@ -88,7 +88,8 @@ function updateRace() {
     // Верхняя граница (0)
     if (player.y < 0) player.y = 0;
     // Нижняя граница — середина поля (HEIGHT/2 - 1)
-    if (player.y >= Math.floor(HEIGHT / 2)) player.y = Math.floor(HEIGHT / 2) - 1;
+    const maxY = Math.floor(HEIGHT / 2) - 1;
+    if (player.y > maxY) player.y = maxY;
     // Левая граница
     if (player.x < 0) player.x = 0;
     // Правая граница
@@ -108,7 +109,8 @@ function updateRace() {
     
     // ===== ОГРАНИЧЕНИЯ ИИ (НИЖНЯЯ ПОЛОВИНА) =====
     // Верхняя граница — середина поля (HEIGHT/2 + 1)
-    if (ai.y < Math.floor(HEIGHT / 2) + 1) ai.y = Math.floor(HEIGHT / 2) + 1;
+    const minAIY = Math.floor(HEIGHT / 2) + 1;
+    if (ai.y < minAIY) ai.y = minAIY;
     // Нижняя граница
     if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
     // Левая граница
@@ -121,7 +123,7 @@ function updateRace() {
         obs.x === Math.round(ai.x) + 1 && obs.y === Math.round(ai.y)
     );
     if (aiObstacleAhead) {
-        const up = ai.y - 1 >= Math.floor(HEIGHT / 2) + 1;
+        const up = ai.y - 1 >= minAIY;
         const down = ai.y + 1 < HEIGHT;
         if (up && !raceState.obstacles.some(o => o.x === Math.round(ai.x) && o.y === ai.y - 1)) {
             ai.dirY = -1;
@@ -169,12 +171,13 @@ function updateRace() {
         }
     }
     
-    // ===== СПАВН ПРЕПЯТСТВИЙ (ЧАЩЕ) =====
+    // ===== СПАВН ПРЕПЯТСТВИЙ =====
     if (Math.random() < RACE_CONFIG.spawnRate) {
-        // Спавним в верхней или нижней половине
+        const maxY = Math.floor(HEIGHT / 2) - 1;
+        const minAIY = Math.floor(HEIGHT / 2) + 1;
         const y = Math.random() > 0.5 ? 
-            1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2)) : 
-            Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2));
+            1 + Math.floor(Math.random() * (maxY - 1)) : 
+            minAIY + Math.floor(Math.random() * (HEIGHT - minAIY - 1));
         raceState.obstacles.push({
             x: WIDTH - 2,
             y: y,
@@ -199,7 +202,6 @@ function updateRace() {
 
 function drawRace() {
     if (!raceState.active && !raceState.win && !raceState.gameOver && raceState.countdownActive) {
-        // Обратный отсчёт
         ctx.fillStyle = '#03050a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = 'bold 80px Orbitron';
