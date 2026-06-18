@@ -24,6 +24,12 @@ function showVictory(name) {
         setTimeout(() => overlay.classList.remove('show'), 2000);
     }
     
+    // ===== САЛЮТ ПРИ ПОБЕДЕ =====
+    if (typeof startFireworks === 'function') {
+        const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
+        startFireworks(color, 6);
+    }
+    
     if (matchMode === 'tournament') {
         if (name === 'Синий') tournamentScore[0]++;
         else if (name === 'Оранжевый') tournamentScore[1]++;
@@ -54,6 +60,9 @@ function showVictory(name) {
 }
 
 function updateGame() {
+    // Обновляем салют (даже если игра не активна, частицы продолжают лететь)
+    if (typeof updateFireworks === 'function') updateFireworks();
+    
     if (!gameActive) return;
     
     // ===== РЕЖИМ ГОНКИ =====
