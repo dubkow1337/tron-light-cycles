@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" (НОВАЯ ЛОГИКА ИИ) ==========
+// ========== РЕЖИМ "ГОНКИ" (БОТ ВСЕГДА ДВИЖЕТСЯ, БОЛЬШЕ ПРЕПЯТСТВИЙ) ==========
 
 let raceState = {
     active: false,
@@ -17,7 +17,7 @@ let raceState = {
     timer: 0,
     phaseTime: 30,
     finishRevealed: false,
-    aiStuckCounter: 0      // счётчик для предотвращения застревания
+    aiStuckCounter: 0
 };
 
 const RACE_CONFIG = {
@@ -27,11 +27,11 @@ const RACE_CONFIG = {
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
     wallX: Math.floor(WIDTH / 2) - 2,
-    obstacleSpeed: 1.5,
+    obstacleSpeed: 1.8,           // ← БЫСТРЕЕ (было 1.5)
     speed: 0.7,
-    spawnRate: 0.05,
-    doubleChance: 0.3,
-    playerAimChance: 0.6,
+    spawnRate: 0.08,              // ← ЧАЩЕ (было 0.05)
+    doubleChance: 0.4,            // ← БОЛЬШЕ ДВОЙНЫХ БЛОКОВ
+    playerAimChance: 0.7,         // ← ЧАЩЕ НА ЛИНИИ ИГРОКА
     phaseTime: 30
 };
 
@@ -165,12 +165,12 @@ function updateRace() {
     }
     
     // ============================================================
-    // ===== НОВАЯ ЛОГИКА ИИ (УМНЫЙ МАНЁВР) =====
+    // ===== НОВАЯ ЛОГИКА ИИ (ВСЕГДА В ДВИЖЕНИИ) =====
     // ============================================================
     const aiX = Math.round(ai.x);
     const aiY = Math.round(ai.y);
     
-    // Проверяем, не застрял ли ИИ (долго не двигается)
+    // Проверяем, не застрял ли ИИ
     const stuckThreshold = 5;
     if (Math.abs(ai.x - ai.previousX || 0) < 0.01 && Math.abs(ai.y - ai.previousY || 0) < 0.01) {
         raceState.aiStuckCounter++;
@@ -180,18 +180,13 @@ function updateRace() {
     ai.previousX = ai.x;
     ai.previousY = ai.y;
     
-    // Функция проверки, безопасна ли клетка (x, y)
     function isSafeAI(x, y) {
-        // Границы поля
         if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return false;
-        // Разделитель
         if (isRestricted) {
             const minAIY = Math.floor(HEIGHT / 2) + 1;
             if (y < minAIY) return false;
-            // Вертикальная стена
             if (x >= wallX) return false;
         }
-        // Препятствия
         for (let obs of raceState.obstacles) {
             const ox = Math.floor(obs.x);
             const oy = obs.y;
@@ -203,7 +198,6 @@ function updateRace() {
                 }
             }
         }
-        // След ИИ (чтобы не врезаться в свой след)
         for (let t = 0; t < ai.trail.length - 2; t++) {
             if (ai.trail[t].x === Math.round(x) && ai.trail[t].y === Math.round(y)) {
                 return false;
@@ -212,29 +206,16 @@ function updateRace() {
         return true;
     }
     
-    // Список направлений в приоритете: вправо, вверх, вниз, влево
-    let dirs = [];
-    if (isRestricted) {
-        // В ограниченном режиме ИИ должен двигаться вправо, но может маневрировать вверх/вниз
-        dirs = [
-            { dx: 1, dy: 0 },   // вправо (приоритет)
-            { dx: 0, dy: -1 },  // вверх
-            { dx: 0, dy: 1 },   // вниз
-            { dx: -1, dy: 0 }   // влево (в крайнем случае)
-        ];
-    } else {
-        // После снятия стены — вправо (к финишу) любой ценой
-        dirs = [
-            { dx: 1, dy: 0 },
-            { dx: 0, dy: -1 },
-            { dx: 0, dy: 1 },
-            { dx: -1, dy: 0 }
-        ];
-    }
+    // Список направлений с приоритетом (вправо — главное)
+    let dirs = [
+        { dx: 1, dy: 0 },
+        { dx: 0, dy: -1 },
+        { dx: 0, dy: 1 },
+        { dx: -1, dy: 0 }
+    ];
     
-    // Если ИИ застрял, пробуем резко сменить направление
+    // Если ИИ застрял, меняем приоритет на вертикальное движение
     if (raceState.aiStuckCounter > stuckThreshold) {
-        // Меняем приоритет: пробуем вверх/вниз, затем вправо
         dirs = [
             { dx: 0, dy: -1 },
             { dx: 0, dy: 1 },
@@ -245,7 +226,6 @@ function updateRace() {
     }
     
     let chosenDir = null;
-    // Проверяем каждое направление на 3 шага вперёд
     for (let dir of dirs) {
         let safe = true;
         for (let step = 1; step <= 3; step++) {
@@ -262,27 +242,79 @@ function updateRace() {
         }
     }
     
-    // Если безопасное направление найдено — двигаемся туда
-    if (chosenDir) {
-        ai.dirX = chosenDir.dx;
-        ai.dirY = chosenDir.dy;
-    } else {
-        // Если все направления заблокированы — стоим на месте (но так не должно быть)
-        ai.dirX = 0;
-        ai.dirY = 0;
+    // ===== ГЛАВНОЕ: ЕСЛИ НЕТ БЕЗОПАСНОГО НАПРАВЛЕНИЯ — ВЫБИРАЕМ СЛУЧАЙНОЕ (НО НЕ СТОИМ) =====
+    if (!chosenDir) {
+        // Выбираем случайное направление, которое не ведёт немедленно в стену
+        const fallbackDirs = [
+            { dx: 0, dy: -1 },
+            { dx: 0, dy: 1 },
+            { dx: -1, dy: 0 },
+            { dx: 1, dy: 0 }
+        ];
+        // Перемешиваем и выбираем первое, которое не убивает сразу
+        for (let i = fallbackDirs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [fallbackDirs[i], fallbackDirs[j]] = [fallbackDirs[j], fallbackDirs[i]];
+        }
+        for (let dir of fallbackDirs) {
+            const testX = ai.x + dir.dx * speed;
+            const testY = ai.y + dir.dy * speed;
+            // Проверяем только немедленную смерть (без просмотра на 3 шага)
+            if (testX >= 0 && testX < WIDTH && testY >= 0 && testY < HEIGHT) {
+                if (isRestricted) {
+                    const minAIY = Math.floor(HEIGHT / 2) + 1;
+                    if (testY < minAIY) continue;
+                    if (testX >= wallX) continue;
+                }
+                // Проверяем препятствия только на следующей клетке
+                let blocked = false;
+                for (let obs of raceState.obstacles) {
+                    const ox = Math.floor(obs.x);
+                    const oy = obs.y;
+                    for (let dx = 0; dx < obs.size; dx++) {
+                        for (let dy = 0; dy < obs.size; dy++) {
+                            if (ox + dx === Math.round(testX) && oy + dy === Math.round(testY)) {
+                                blocked = true;
+                                break;
+                            }
+                        }
+                        if (blocked) break;
+                    }
+                    if (blocked) break;
+                }
+                if (!blocked) {
+                    chosenDir = dir;
+                    break;
+                }
+            }
+        }
     }
+    
+    // Если даже после этого нет направления — заставляем двигаться вверх (или вниз)
+    if (!chosenDir) {
+        // Пытаемся вверх или вниз
+        if (ai.y - 1 >= (isRestricted ? Math.floor(HEIGHT/2)+1 : 0)) {
+            chosenDir = { dx: 0, dy: -1 };
+        } else if (ai.y + 1 < (isRestricted ? HEIGHT : HEIGHT)) {
+            chosenDir = { dx: 0, dy: 1 };
+        } else {
+            // Если совсем всё плохо — двигаемся вправо (может быть смертельно, но лучше стоять)
+            chosenDir = { dx: 1, dy: 0 };
+        }
+    }
+    
+    // Применяем выбранное направление
+    ai.dirX = chosenDir.dx;
+    ai.dirY = chosenDir.dy;
     
     // Движение ИИ с проверкой на смерть
     let aiNewX = ai.x + ai.dirX * speed;
     let aiNewY = ai.y + ai.dirY * speed;
     
-    // Проверка на выход за границы (смерть ИИ)
     if (aiNewX < 0 || aiNewX >= WIDTH || aiNewY < 0 || aiNewY >= HEIGHT) {
         showMessage('🤖 ИИ РАЗБИЛСЯ!');
         ai.dirX = 0; ai.dirY = 0;
-        // ИИ мёртв, но игра продолжается
     } else {
-        // Проверка на разделитель и стену
         if (isRestricted) {
             const minAIY = Math.floor(HEIGHT / 2) + 1;
             if (aiNewY < minAIY || aiNewX >= wallX) {
@@ -290,7 +322,6 @@ function updateRace() {
                 ai.dirX = 0; ai.dirY = 0;
             }
         }
-        // Если ИИ жив, обновляем позицию
         if (ai.dirX !== 0 || ai.dirY !== 0) {
             ai.x = aiNewX;
             ai.y = aiNewY;
@@ -360,7 +391,7 @@ function updateRace() {
         }
     }
     
-    // ===== СПАВН ПРЕПЯТСТВИЙ =====
+    // ===== СПАВН ПРЕПЯТСТВИЙ (БОЛЬШЕ) =====
     if (Math.random() < RACE_CONFIG.spawnRate) {
         let y;
         if (Math.random() < RACE_CONFIG.playerAimChance) {
