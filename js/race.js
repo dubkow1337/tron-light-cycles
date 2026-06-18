@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ВЫЖИВАНИЕ НА ПОЛОСЕ" (КЛАССИЧЕСКОЕ ДВИЖЕНИЕ) ==========
+// ========== РЕЖИМ "ВЫЖИВАНИЕ" (КЛАССИЧЕСКОЕ ДВИЖЕНИЕ) ==========
 
 let raceState = {
     active: false,
@@ -9,8 +9,7 @@ let raceState = {
     obstacles: [],
     speed: 1.5,
     startTime: 0,
-    score: 0,
-    maxScore: 0
+    score: 0
 };
 
 const RACE_CONFIG = {
@@ -35,7 +34,6 @@ function initRace() {
     raceState.startTime = 0;
     raceState.score = 0;
     
-    // Игрок (верхняя половина)
     raceState.player = {
         x: RACE_CONFIG.playerStartX,
         y: RACE_CONFIG.playerStartY,
@@ -44,7 +42,6 @@ function initRace() {
         trail: [{ x: RACE_CONFIG.playerStartX, y: RACE_CONFIG.playerStartY }]
     };
     
-    // ИИ (нижняя половина)
     raceState.ai = {
         x: RACE_CONFIG.aiStartX,
         y: RACE_CONFIG.aiStartY,
@@ -66,10 +63,10 @@ function updateRace() {
     const player = raceState.player;
     const ai = raceState.ai;
     const speed = raceState.speed;
-    const playerSpeed = RACE_CONFIG.playerSpeed;
-    const aiSpeed = RACE_CONFIG.aiSpeed;
+    const ps = RACE_CONFIG.playerSpeed;
+    const ais = RACE_CONFIG.aiSpeed;
     
-    // ===== УВЕЛИЧЕНИЕ СКОРОСТИ ПРЕПЯТСТВИЙ =====
+    // ===== УВЕЛИЧЕНИЕ СКОРОСТИ =====
     const now = Date.now();
     const elapsed = (now - raceState.startTime) / 1000;
     raceState.speed = Math.min(
@@ -79,12 +76,12 @@ function updateRace() {
     raceState.score = Math.floor(elapsed * 10);
     
     // ============================================================
-    // ===== ДВИЖЕНИЕ ИГРОКА (как в классике) =====
+    // ===== ИГРОК (классическое движение) =====
     // ============================================================
-    player.x += player.dirX * playerSpeed;
-    player.y += player.dirY * playerSpeed;
+    player.x += player.dirX * ps;
+    player.y += player.dirY * ps;
     
-    // Ограничения (верхняя половина)
+    // Ограничения (только верхняя половина)
     const maxY = Math.floor(HEIGHT / 2) - 1;
     if (player.y < 0) player.y = 0;
     if (player.y > maxY) player.y = maxY;
@@ -101,7 +98,7 @@ function updateRace() {
         if (player.trail.length > 40) player.trail.shift();
     }
     
-    // Проверка столкновения со своим следом
+    // Проверка на свой след
     for (let i = 0; i < player.trail.length - 2; i++) {
         if (player.trail[i].x === px && player.trail[i].y === py) {
             raceState.gameOver = true;
@@ -112,77 +109,59 @@ function updateRace() {
     }
     
     // ============================================================
-    // ===== ДВИЖЕНИЕ ИИ (как в классике, с уклонением) =====
+    // ===== ИИ (классическое движение с уклонением) =====
     // ============================================================
-    // ИИ пытается предсказать препятствие и уклоняться
+    // Проверяем препятствия впереди
     const aiX = ai.x;
     const aiY = ai.y;
     const minAIY = Math.floor(HEIGHT / 2) + 1;
     const maxAIY = HEIGHT - 1;
     
-    // Ищем ближайшее препятствие на пути
-    let obstacleAhead = null;
+    let obstacleAhead = false;
     for (let obs of raceState.obstacles) {
-        // Проверяем только препятствия в нижней половине (для ИИ)
-        if (obs.y >= minAIY && obs.y <= maxAIY) {
-            // Расстояние по X до препятствия
-            const distX = obs.x - ai.x;
-            // Проверяем, не находится ли препятствие на одной Y с ИИ (с учётом размера)
+        // Проверяем препятствие на том же Y, что и ИИ (с учётом размера)
+        const distX = obs.x - aiX;
+        if (distX > 0 && distX < 6) {
             const obsY = obs.y;
             const obsSize = obs.size || 1;
-            const aiY2 = Math.round(aiY);
-            if (distX > 0 && distX < 6) {
-                for (let dy = 0; dy < obsSize; dy++) {
-                    if (obsY + dy === aiY2) {
-                        obstacleAhead = obs;
-                        break;
-                    }
+            for (let dy = 0; dy < obsSize; dy++) {
+                if (obsY + dy === Math.round(aiY)) {
+                    obstacleAhead = true;
+                    break;
                 }
-                if (obstacleAhead) break;
             }
         }
+        if (obstacleAhead) break;
     }
     
     if (obstacleAhead) {
-        // Препятствие впереди — уклоняемся вверх или вниз
-        // Проверяем, есть ли место для манёвра
-        const upY = aiY - 1;
-        const downY = aiY + 1;
-        let canUp = upY >= minAIY;
-        let canDown = downY <= maxAIY;
-        // Проверяем, нет ли препятствия в этих клетках
-        for (let obs of raceState.obstacles) {
-            if (obs.x >= aiX && obs.x < aiX + 4) {
-                for (let dy = 0; dy < obs.size; dy++) {
-                    if (obs.y + dy === Math.round(upY)) canUp = false;
-                    if (obs.y + dy === Math.round(downY)) canDown = false;
-                }
-            }
-        }
-        if (canUp && canDown) {
+        // Уклоняемся — меняем вертикальное направление
+        const up = aiY - 1 >= minAIY;
+        const down = aiY + 1 <= maxAIY;
+        if (up && down) {
             ai.dirY = (Math.random() < 0.5) ? -1 : 1;
-        } else if (canUp) {
+        } else if (up) {
             ai.dirY = -1;
-        } else if (canDown) {
+        } else if (down) {
             ai.dirY = 1;
         } else {
-            // Если оба направления заблокированы, пытаемся замедлиться или повернуть влево
-            ai.dirX = -1; // двигаемся влево (отступаем)
+            // Если некуда уклоняться, поворачиваем назад (влево)
+            ai.dirX = -1;
         }
-        ai.dirX = 1; // всё равно продолжаем двигаться вправо, но меняем Y
+        ai.dirX = 1; // продолжаем двигаться вправо
     } else {
-        // Случайные манёвры для непредсказуемости
+        // Случайные манёвры
         if (Math.random() < 0.01) {
             ai.dirY = (Math.random() < 0.5) ? 1 : -1;
         } else if (Math.random() < 0.02) {
             ai.dirY = 0;
         }
-        ai.dirX = 1; // всегда двигаемся вправо
+        ai.dirX = 1;
     }
     
     // Движение ИИ
-    ai.x += ai.dirX * aiSpeed;
-    ai.y += ai.dirY * aiSpeed;
+    ai.x += ai.dirX * ais;
+    ai.y += ai.dirY * ais;
     
     // Ограничения ИИ (нижняя половина)
     if (ai.y < minAIY) ai.y = minAIY;
@@ -200,8 +179,19 @@ function updateRace() {
         if (ai.trail.length > 30) ai.trail.shift();
     }
     
+    // Проверка ИИ на свой след
+    for (let i = 0; i < ai.trail.length - 2; i++) {
+        if (ai.trail[i].x === aiPX && ai.trail[i].y === aiPY) {
+            // ИИ врезался в свой след — он проигрывает
+            raceState.win = true;
+            raceState.active = false;
+            showMessage('🎉 ИИ ВРЕЗАЛСЯ В СВОЙ СЛЕД! ВЫ ПОБЕДИЛИ!');
+            return;
+        }
+    }
+    
     // ============================================================
-    // ===== ДВИЖЕНИЕ ПРЕПЯТСТВИЙ И СТОЛКНОВЕНИЯ =====
+    // ===== ПРЕПЯТСТВИЯ (движение, столкновения) =====
     // ============================================================
     for (let i = raceState.obstacles.length - 1; i >= 0; i--) {
         const obs = raceState.obstacles[i];
@@ -223,7 +213,7 @@ function updateRace() {
         if (hitPlayer) {
             raceState.gameOver = true;
             raceState.active = false;
-            showMessage('💥 ВЫ ВРЕЗАЛИСЬ! ИГРОК ПРОИГРАЛ!');
+            showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ПРЕПЯТСТВИЕ!');
             return;
         }
         
@@ -243,7 +233,7 @@ function updateRace() {
         if (hitAI) {
             raceState.win = true;
             raceState.active = false;
-            showMessage('🎉 ИИ ВРЕЗАЛСЯ! ВЫ ПОБЕДИЛИ!');
+            showMessage('🎉 ИИ ВРЕЗАЛСЯ В ПРЕПЯТСТВИЕ! ВЫ ПОБЕДИЛИ!');
             return;
         }
         
@@ -311,7 +301,7 @@ function drawRace() {
         ctx.stroke();
     }
     
-    // ===== ГОРИЗОНТАЛЬНАЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
+    // ===== РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
     const midY = canvas.height / 2;
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 2;
@@ -381,7 +371,7 @@ function drawRace() {
     }
     ctx.shadowBlur = 0;
     
-    // ===== ИГРОК (поворот в зависимости от направления) =====
+    // ===== ИГРОК (поворот) =====
     const px = Math.round(raceState.player.x) * CELL_SIZE + CELL_SIZE / 2;
     const py = Math.round(raceState.player.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
