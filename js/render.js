@@ -159,10 +159,9 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
     
     // ===== 1. ОРАНЖЕВАЯ ЛИНИЯ С ЗАТУХАНИЕМ В ХВОСТЕ =====
     for (let i = 0; i < trailLength - 1; i++) {
-        // Чем дальше от босса, тем прозрачнее
-        const distanceFromBoss = trailLength - 1 - i;
-        const maxDistance = trailLength;
-        const alpha = Math.min(1, distanceFromBoss / 15); // ← ПЛАВНОЕ ЗАТУХАНИЕ В ХВОСТЕ
+        // i = 0 — самый старый след (хвост), i = trailLength-1 — свежий след (у босса)
+        const age = i / trailLength; // 0 — хвост, 1 — босс
+        const alpha = Math.pow(age, 0.7); // ← плавное затухание: у хвоста ~0, у босса ~1
         
         ctx.beginPath();
         ctx.lineWidth = CELL_SIZE + 2;
@@ -170,24 +169,23 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
         ctx.lineJoin = 'round';
         ctx.shadowBlur = 15 * alpha;
         ctx.shadowColor = '#ff8800';
-        ctx.strokeStyle = `rgba(255, 136, 0, ${alpha})`; // ← ОРАНЖЕВЫЙ
+        ctx.strokeStyle = `rgba(255, 136, 0, ${alpha})`;
         ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
         ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
         ctx.stroke();
     }
     
-    // ===== 2. ПРОЗРАЧНЫЙ ПРОБОР (НЕ ПРЕРЫВИСТЫЙ) =====
+    // ===== 2. ПРОЗРАЧНЫЙ ПРОБОР (синхронно с линией) =====
     for (let i = 0; i < trailLength - 1; i++) {
-        const distanceFromBoss = trailLength - 1 - i;
-        const maxDistance = trailLength;
-        const alpha = Math.min(1, distanceFromBoss / 15); // синхронно с линией
+        const age = i / trailLength;
+        const alpha = Math.pow(age, 0.7);
         
         ctx.beginPath();
-        ctx.lineWidth = 8; // ← ШИРИНА ПРОБОРА
+        ctx.lineWidth = 8;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = `rgba(3, 5, 10, ${alpha})`; // ← ЦВЕТ ФОНА С ПРОЗРАЧНОСТЬЮ
+        ctx.strokeStyle = `rgba(3, 5, 10, ${alpha})`;
         ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
         ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
         ctx.stroke();
