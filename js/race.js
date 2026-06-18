@@ -14,12 +14,13 @@ let raceState = {
 
 const RACE_CONFIG = {
     playerStartX: 2,
-    playerY: Math.floor(HEIGHT / 4), // центр верхней половины
+    playerY: Math.floor(HEIGHT / 4),
     aiStartX: 2,
-    aiY: Math.floor(HEIGHT * 3 / 4), // центр нижней половины
+    aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
-    obstacleSpeed: 0.3,
-    aiSpeed: 0.5
+    obstacleSpeed: 0.8, // ← БЫСТРЕЕ (было 0.3)
+    aiSpeed: 0.5,
+    spawnRate: 0.04 // ← ЧАЩЕ (было 0.025)
 };
 
 function initRace() {
@@ -52,7 +53,6 @@ function initRace() {
     
     showMessage('🏁 ГОНКА! СТАРТ ЧЕРЕЗ 3...');
     
-    // Обратный отсчёт
     let countdownInterval = setInterval(() => {
         raceState.countdown--;
         if (raceState.countdown === 2) {
@@ -80,14 +80,18 @@ function updateRace() {
     const player = raceState.player;
     const ai = raceState.ai;
     
-    // ===== ДВИЖЕНИЕ ИГРОКА (ПОСТОЯННОЕ) =====
+    // ===== ДВИЖЕНИЕ ИГРОКА =====
     player.x += player.dirX;
     player.y += player.dirY;
     
     // ===== ОГРАНИЧЕНИЯ ИГРОКА (ВЕРХНЯЯ ПОЛОВИНА) =====
+    // Верхняя граница (0)
     if (player.y < 0) player.y = 0;
+    // Нижняя граница — середина поля (HEIGHT/2 - 1)
     if (player.y >= Math.floor(HEIGHT / 2)) player.y = Math.floor(HEIGHT / 2) - 1;
+    // Левая граница
     if (player.x < 0) player.x = 0;
+    // Правая граница
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
     // След игрока
@@ -98,14 +102,18 @@ function updateRace() {
         if (player.trail.length > 30) player.trail.shift();
     }
     
-    // ===== ДВИЖЕНИЕ ИИ (ПОСТОЯННОЕ) =====
+    // ===== ДВИЖЕНИЕ ИИ =====
     ai.x += ai.dirX;
     ai.y += ai.dirY;
     
     // ===== ОГРАНИЧЕНИЯ ИИ (НИЖНЯЯ ПОЛОВИНА) =====
+    // Верхняя граница — середина поля (HEIGHT/2 + 1)
     if (ai.y < Math.floor(HEIGHT / 2) + 1) ai.y = Math.floor(HEIGHT / 2) + 1;
+    // Нижняя граница
     if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
+    // Левая граница
     if (ai.x < 0) ai.x = 0;
+    // Правая граница
     if (ai.x >= WIDTH) ai.x = WIDTH - 1;
     
     // ИИ: проверка препятствий
@@ -161,8 +169,9 @@ function updateRace() {
         }
     }
     
-    // ===== СПАВН ПРЕПЯТСТВИЙ =====
-    if (Math.random() < 0.025) {
+    // ===== СПАВН ПРЕПЯТСТВИЙ (ЧАЩЕ) =====
+    if (Math.random() < RACE_CONFIG.spawnRate) {
+        // Спавним в верхней или нижней половине
         const y = Math.random() > 0.5 ? 
             1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2)) : 
             Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2));
@@ -190,7 +199,7 @@ function updateRace() {
 
 function drawRace() {
     if (!raceState.active && !raceState.win && !raceState.gameOver && raceState.countdownActive) {
-        // Отрисовка обратного отсчёта
+        // Обратный отсчёт
         ctx.fillStyle = '#03050a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = 'bold 80px Orbitron';
@@ -338,7 +347,6 @@ function startRace() {
         clearInterval(gameLoop);
         gameLoop = null;
     }
-    // Рисуем сразу, чтобы видеть обратный отсчёт
     drawRace();
     gameLoop = setInterval(() => {
         if (matchMode === 'race') {
