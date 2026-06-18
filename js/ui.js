@@ -186,17 +186,18 @@ function setupEventListeners() {
         const gameScreen = document.getElementById('gameScreen');
         if (!gameScreen || !gameScreen.classList.contains('active')) return;
         
-        // Если режим гонок — управление через race.js
-        if (matchMode === 'race') {
-            if (typeof raceState !== 'undefined' && raceState.active && !raceState.gameOver) {
-                const p = raceState.player;
-                if (e.key === 'ArrowUp' && p.y > 0) p.y--;
-                if (e.key === 'ArrowDown' && p.y < 3) p.y++;
-                if (e.key === 'ArrowRight' && p.x < WIDTH - 1) p.x++;
-                if (e.key === 'ArrowLeft' && p.x > 0) p.x--;
-            }
-            return;
-        }
+        // ===== УПРАВЛЕНИЕ В РЕЖИМЕ ГОНКИ =====
+if (matchMode === 'race') {
+    if (typeof raceState !== 'undefined' && raceState.active && !raceState.gameOver) {
+        const p = raceState.player;
+        // Меняем направление, а не координаты
+        if (e.key === 'ArrowUp' && p.dirY !== 1) { p.dirY = -1; p.dirX = 0; }
+        else if (e.key === 'ArrowDown' && p.dirY !== -1) { p.dirY = 1; p.dirX = 0; }
+        else if (e.key === 'ArrowLeft' && p.dirX !== 1) { p.dirX = -1; p.dirY = 0; }
+        else if (e.key === 'ArrowRight' && p.dirX !== -1) { p.dirX = 1; p.dirY = 0; }
+    }
+    return;
+}
         
         // Обычное управление для 2p и AI
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
