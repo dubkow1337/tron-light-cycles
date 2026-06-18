@@ -155,35 +155,42 @@ function draw() {
 // ===== БОСС (LIGHT RUNNER) =====
 if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trail.length >= 2) {
     const trail = boss.trail;
+    const trailLength = trail.length;
     
-    // ===== 1. ТОЛСТАЯ ЛИНИЯ (ОСНОВА) =====
-    ctx.beginPath();
-    ctx.lineWidth = CELL_SIZE; // ← ТОЛЩИНА В КЛЕТКУ!
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = boss.trailColor || '#ff2200';
-    ctx.strokeStyle = boss.trailColor || '#ff2200';
-    ctx.moveTo(trail[0].x * CELL_SIZE + CELL_SIZE/2, trail[0].y * CELL_SIZE + CELL_SIZE/2);
-    for (let i = 1; i < trail.length; i++) {
-        ctx.lineTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
+    // ===== 1. ТОЛСТАЯ ОСНОВА С ГРАДИЕНТОМ ПРОЗРАЧНОСТИ =====
+    for (let i = 0; i < trailLength - 1; i++) {
+        const progress = i / trailLength; // 0 — начало, 1 — конец
+        const alpha = 1 - progress * 0.85; // к концу становится прозрачнее
+        
+        ctx.beginPath();
+        ctx.lineWidth = CELL_SIZE + 2; // чуть шире клетки
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 15 * alpha;
+        ctx.shadowColor = '#ff8800'; // ← оранжевое свечение
+        ctx.strokeStyle = `rgba(255, 136, 0, ${alpha})`; // ← оранжевый, а не красный!
+        ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.stroke();
     }
-    ctx.stroke();
     
-    // ===== 2. ПРОЗРАЧНЫЙ ЗАЗОР (ПОВЕРХ ТОЛСТОЙ ЛИНИИ) =====
-    ctx.beginPath();
-    ctx.lineWidth = 4; // ← ТОЛЩИНА ЗАЗОРА (можно менять)
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 0; // ← БЕЗ СВЕЧЕНИЯ
-    ctx.strokeStyle = '#03050a'; // ← ЦВЕТ ФОНА (НЕВИДИМАЯ ЛИНИЯ)
-    ctx.moveTo(trail[0].x * CELL_SIZE + CELL_SIZE/2, trail[0].y * CELL_SIZE + CELL_SIZE/2);
-    for (let i = 1; i < trail.length; i++) {
-        ctx.lineTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
+    // ===== 2. ПРОЗРАЧНЫЙ ПРОБОР (широкий зазор) =====
+    for (let i = 0; i < trailLength - 1; i++) {
+        const progress = i / trailLength;
+        const alpha = 1 - progress * 0.85; // затухает вместе с основой
+        
+        ctx.beginPath();
+        ctx.lineWidth = 8; // ← ШИРОКИЙ ПРОБОР (было 4)
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = `rgba(3, 5, 10, ${alpha})`; // ← цвет фона с прозрачностью
+        ctx.moveTo(trail[i].x * CELL_SIZE + CELL_SIZE/2, trail[i].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.lineTo(trail[i+1].x * CELL_SIZE + CELL_SIZE/2, trail[i+1].y * CELL_SIZE + CELL_SIZE/2);
+        ctx.stroke();
     }
-    ctx.stroke();
     
-    // ===== 3. КОРПУС БОССА (3x3) =====
+    // ===== 3. КОРПУС БОССА (красный) =====
     const size = boss.size || 3;
     const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
     const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -197,9 +204,9 @@ if (typeof boss !== 'undefined' && boss && boss.alive && boss.trail && boss.trai
     else if (boss.dirY === 1) ctx.rotate(Math.PI / 2);
     
     ctx.shadowBlur = 25;
-    ctx.shadowColor = boss.color || '#ff3300';
+    ctx.shadowColor = '#ff2200'; // ← красное свечение
     
-    ctx.fillStyle = boss.color || '#ff3300';
+    ctx.fillStyle = '#ff2200'; // ← КРАСНЫЙ КОРПУС
     ctx.beginPath();
     ctx.moveTo(20, 0);
     ctx.lineTo(-10, -14);
