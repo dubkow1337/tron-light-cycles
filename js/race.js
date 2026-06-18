@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" (ТОЧНЫЙ ТАЙМЕР, УМНЫЙ ИИ, СТЕНА-РАЗДЕЛИТЕЛЬ) ==========
+// ========== РЕЖИМ "ГОНКИ" (СИНЯЯ ЛИНИЯ ВСЕГДА, КРАСНАЯ СТЕНА — ВРЕМЕННАЯ) ==========
 
 let raceState = {
     active: false,
@@ -12,9 +12,9 @@ let raceState = {
     countdown: 0,
     countdownActive: false,
     speed: 0.7,
-    startTime: 0,              // время начала гонки (Date.now())
-    timer: 0,                  // прошедшие секунды (реальные)
-    phaseTime: 30,             // через 30 секунд снимаем ограничение
+    startTime: 0,
+    timer: 0,
+    phaseTime: 30,
     finishRevealed: false
 };
 
@@ -44,7 +44,6 @@ function initRace() {
     raceState.startTime = 0;
     raceState.finishRevealed = false;
     
-    // Игрок
     raceState.player = {
         x: RACE_CONFIG.playerStartX,
         y: RACE_CONFIG.playerY,
@@ -53,7 +52,6 @@ function initRace() {
         trail: [{ x: RACE_CONFIG.playerStartX, y: RACE_CONFIG.playerY }]
     };
     
-    // ИИ
     raceState.ai = {
         x: RACE_CONFIG.aiStartX,
         y: RACE_CONFIG.aiY,
@@ -80,10 +78,10 @@ function initRace() {
             if (typeof countdownBeep === 'function') countdownBeep(0);
             raceState.active = true;
             raceState.countdownActive = false;
-            raceState.startTime = Date.now(); // ← запоминаем реальное время
+            raceState.startTime = Date.now();
             clearInterval(countdownInterval);
             setTimeout(() => {
-                showMessage('⏳ ОГРАНИЧЕНИЕ: ДВИГАЙТЕСЬ В СВОЕЙ ПОЛОВИНЕ');
+                showMessage('⏳ ОГРАНИЧЕНИЕ: НЕ ПЕРЕСЕКАЙТЕ КРАСНУЮ СТЕНУ!');
             }, 1000);
         }
     }, 1000);
@@ -95,11 +93,11 @@ function updateRace() {
     // ===== ТАЙМЕР (реальное время) =====
     if (raceState.phase === 'restricted') {
         const now = Date.now();
-        raceState.timer = (now - raceState.startTime) / 1000; // секунды
+        raceState.timer = (now - raceState.startTime) / 1000;
         if (raceState.timer >= RACE_CONFIG.phaseTime) {
             raceState.phase = 'unrestricted';
             raceState.finishRevealed = true;
-            showMessage('🚨 ФИНИШ ОТКРЫТ! ДВИЖЕНИЕ ПО ВСЕМУ ПОЛЮ!');
+            showMessage('🚨 СТЕНА УБРАНА! ФИНИШ ОТКРЫТ! ДВИЖЕНИЕ ПО ВСЕМУ ПОЛЮ!');
             raceState.speed = 0.9;
         }
     }
@@ -113,7 +111,7 @@ function updateRace() {
     player.x += player.dirX * speed;
     player.y += player.dirY * speed;
     
-    // ===== ОГРАНИЧЕНИЯ =====
+    // ===== ОГРАНИЧЕНИЯ (красная стена не даёт пересечь середину) =====
     if (isRestricted) {
         const maxY = Math.floor(HEIGHT / 2) - 1;
         if (player.y < 0) player.y = 0;
@@ -125,7 +123,7 @@ function updateRace() {
     if (player.x < 0) player.x = 0;
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
-    // ===== СЛЕД ИГРОКА =====
+    // След игрока
     const px = Math.round(player.x);
     const py = Math.round(player.y);
     if (player.trail.length === 0 || 
@@ -135,7 +133,7 @@ function updateRace() {
         if (player.trail.length > 40) player.trail.shift();
     }
     
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СВОИМ СЛЕДОМ =====
+    // Проверка столкновения со своим следом
     for (let i = 0; i < player.trail.length - 2; i++) {
         if (player.trail[i].x === px && player.trail[i].y === py) {
             raceState.gameOver = true;
@@ -144,18 +142,16 @@ function updateRace() {
         }
     }
     
-    // ===== УМНЫЙ ИИ: проверка препятствий на 3 клетки вперёд =====
+    // ===== УМНЫЙ ИИ (проверка на 3 шага вперёд) =====
     const aiX = Math.round(ai.x);
     const aiY = Math.round(ai.y);
-    const dirX = ai.dirX;
-    const dirY = ai.dirY;
     
-    // Проверяем, есть ли препятствие на пути (вперёд на 1-3 клетки)
+    // Проверяем препятствия перед ИИ
     let obstacleAhead = false;
     let obstacleDir = null;
     for (let step = 1; step <= 3; step++) {
-        const checkX = aiX + dirX * step;
-        const checkY = aiY + dirY * step;
+        const checkX = aiX + step;
+        const checkY = aiY; // ИИ всегда движется вправо, но может менять Y
         for (let obs of raceState.obstacles) {
             const ox = Math.floor(obs.x);
             const oy = obs.y;
@@ -163,7 +159,6 @@ function updateRace() {
                 for (let dy = 0; dy < obs.size; dy++) {
                     if (ox + dx === checkX && oy + dy === checkY) {
                         obstacleAhead = true;
-                        obstacleDir = { x: dirX, y: dirY };
                         break;
                     }
                 }
@@ -175,14 +170,13 @@ function updateRace() {
     }
     
     if (obstacleAhead) {
-        // Пытаемся уйти вверх или вниз (в зависимости от ограничений)
+        // Найти свободное направление (вверх или вниз)
         let upFree = false, downFree = false;
         const upY = aiY - 1;
         const downY = aiY + 1;
         const minAIY = isRestricted ? Math.floor(HEIGHT / 2) + 1 : 0;
         const maxAIY = isRestricted ? HEIGHT - 1 : HEIGHT - 1;
         
-        // Проверяем, свободна ли клетка вверх
         if (upY >= minAIY) {
             let blocked = false;
             for (let obs of raceState.obstacles) {
@@ -196,7 +190,6 @@ function updateRace() {
             }
             if (!blocked) upFree = true;
         }
-        // Проверяем, свободна ли клетка вниз
         if (downY < maxAIY) {
             let blocked = false;
             for (let obs of raceState.obstacles) {
@@ -212,15 +205,14 @@ function updateRace() {
         }
         
         if (upFree && downFree) {
-            // Выбираем направление, которое дальше от препятствия
             ai.dirY = (Math.random() < 0.5) ? -1 : 1;
         } else if (upFree) {
             ai.dirY = -1;
         } else if (downFree) {
             ai.dirY = 1;
         } else {
-            // Если оба направления заблокированы, пытаемся изменить направление вправо/влево
-            // (но мы всегда движемся вправо, поэтому меняем только вертикаль)
+            // Если всё заблокировано, пытаемся остаться на месте (движение вправо)
+            ai.dirY = 0;
         }
         ai.dirX = 0;
     } else {
@@ -230,14 +222,14 @@ function updateRace() {
         } else if (Math.random() < 0.02) {
             ai.dirY = 0;
         }
-        ai.dirX = 1; // всегда вправо
+        ai.dirX = 1;
     }
     
     // Движение ИИ
     ai.x += ai.dirX * speed;
     ai.y += ai.dirY * speed;
     
-    // ===== ОГРАНИЧЕНИЯ ИИ =====
+    // Ограничения для ИИ
     if (isRestricted) {
         const minAIY = Math.floor(HEIGHT / 2) + 1;
         if (ai.y < minAIY) ai.y = minAIY;
@@ -394,19 +386,41 @@ function drawRace() {
         ctx.stroke();
     }
     
-    // ===== СТЕНА-РАЗДЕЛИТЕЛЬ (красная прерывистая) =====
+    // ===== ПОСТОЯННАЯ СИНЯЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
+    const midY = canvas.height / 2;
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 15]);
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = '#00ffff';
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(canvas.width, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.shadowBlur = 0;
+    
+    // ===== КРАСНАЯ СТЕНА-ПРЕГРАДА (только в restricted) =====
     if (raceState.phase === 'restricted') {
-        const midY = canvas.height / 2;
         ctx.strokeStyle = '#ff3333';
-        ctx.lineWidth = 4;
-        ctx.setLineDash([10, 20]);
-        ctx.shadowBlur = 10;
+        ctx.lineWidth = 6;
+        ctx.setLineDash([]);
+        ctx.shadowBlur = 15;
         ctx.shadowColor = '#ff0000';
         ctx.beginPath();
         ctx.moveTo(0, midY);
         ctx.lineTo(canvas.width, midY);
         ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.shadowBlur = 0;
+        // Дополнительно рисуем яркие красные точки (эффект "стена")
+        for (let x = 0; x < canvas.width; x += 30) {
+            ctx.fillStyle = '#ff0000';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(x, midY, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.shadowBlur = 0;
     }
     
@@ -516,7 +530,7 @@ function drawRace() {
     
     ctx.shadowBlur = 0;
     
-    // ===== ТАЙМЕР (реальное время) =====
+    // ===== ТАЙМЕР =====
     if (raceState.phase === 'restricted') {
         const remaining = Math.max(0, RACE_CONFIG.phaseTime - raceState.timer);
         ctx.fillStyle = '#ffaa00';
