@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" (НОВАЯ ВЕРСИЯ) ==========
+// ========== РЕЖИМ "ГОНКИ" ==========
 
 let raceState = {
     active: false,
@@ -19,9 +19,9 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
-    obstacleSpeed: 0.8,
+    obstacleSpeed: 1.2,        // ← БЫСТРЕЕ (было 0.8)
     aiSpeed: 0.5,
-    spawnRate: 0.04,
+    spawnRate: 0.06,           // ← ЧАЩЕ (было 0.04)
     speedMultiplier: 1
 };
 
@@ -33,7 +33,7 @@ function initRace() {
     raceState.countdownActive = true;
     raceState.speed = 1;
     
-    // Игрок (центр верхней половины)
+    // Игрок
     raceState.player = {
         x: RACE_CONFIG.playerStartX,
         y: RACE_CONFIG.playerY,
@@ -42,7 +42,7 @@ function initRace() {
         trail: [{ x: RACE_CONFIG.playerStartX, y: RACE_CONFIG.playerY }]
     };
     
-    // ИИ (центр нижней половины)
+    // ИИ
     raceState.ai = {
         x: RACE_CONFIG.aiStartX,
         y: RACE_CONFIG.aiY,
@@ -83,30 +83,41 @@ function updateRace() {
     const player = raceState.player;
     const ai = raceState.ai;
     
-    // ===== ДВИЖЕНИЕ ИГРОКА (ПОСТОЯННОЕ) =====
+    // ===== ДВИЖЕНИЕ ИГРОКА =====
     player.x += player.dirX * raceState.speed;
     player.y += player.dirY * raceState.speed;
     
-    // ===== ОГРАНИЧЕНИЯ ИГРОКА (ВЕРХНЯЯ ПОЛОВИНА) =====
+    // ===== ОГРАНИЧЕНИЯ =====
     const maxY = Math.floor(HEIGHT / 2) - 1;
     if (player.y < 0) player.y = 0;
     if (player.y > maxY) player.y = maxY;
     if (player.x < 0) player.x = 0;
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
-    // След игрока
+    // ===== СЛЕД ИГРОКА =====
+    const px = Math.round(player.x);
+    const py = Math.round(player.y);
     if (player.trail.length === 0 || 
-        player.trail[player.trail.length-1].x !== Math.round(player.x) || 
-        player.trail[player.trail.length-1].y !== Math.round(player.y)) {
-        player.trail.push({ x: Math.round(player.x), y: Math.round(player.y) });
-        if (player.trail.length > 30) player.trail.shift();
+        player.trail[player.trail.length-1].x !== px || 
+        player.trail[player.trail.length-1].y !== py) {
+        player.trail.push({ x: px, y: py });
+        if (player.trail.length > 40) player.trail.shift();
+    }
+    
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СВОИМ СЛЕДОМ =====
+    for (let i = 0; i < player.trail.length - 2; i++) {
+        if (player.trail[i].x === px && player.trail[i].y === py) {
+            raceState.gameOver = true;
+            showMessage('💥 ВЫ ВРЕЗАЛИСЬ В СВОЙ СЛЕД!');
+            return;
+        }
     }
     
     // ===== ДВИЖЕНИЕ ИИ =====
     ai.x += ai.dirX * RACE_CONFIG.aiSpeed;
     ai.y += ai.dirY * RACE_CONFIG.aiSpeed;
     
-    // ===== ОГРАНИЧЕНИЯ ИИ (НИЖНЯЯ ПОЛОВИНА) =====
+    // ===== ОГРАНИЧЕНИЯ ИИ =====
     const minAIY = Math.floor(HEIGHT / 2) + 1;
     if (ai.y < minAIY) ai.y = minAIY;
     if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
@@ -148,7 +159,7 @@ function updateRace() {
         obs.x -= RACE_CONFIG.obstacleSpeed;
         
         // Столкновение с игроком
-        if (Math.floor(obs.x) === Math.round(player.x) && obs.y === Math.round(player.y)) {
+        if (Math.floor(obs.x) === px && obs.y === py) {
             raceState.gameOver = true;
             showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ПРЕПЯТСТВИЕ!');
             return;
@@ -198,7 +209,6 @@ function updateRace() {
 
 function drawRace() {
     if (!raceState.active && !raceState.win && !raceState.gameOver && raceState.countdownActive) {
-        // Обратный отсчёт
         ctx.fillStyle = '#03050a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.font = 'bold 80px Orbitron';
@@ -217,25 +227,28 @@ function drawRace() {
     
     if (!raceState.active && !raceState.win && !raceState.gameOver) return;
     
-    // ===== ФОН (ДОРОГА) =====
-    ctx.fillStyle = '#0a0f14';
+    // ===== СЕТКА (как в основном режиме) =====
+    ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // ===== ДОРОЖНАЯ РАЗМЕТКА =====
-    ctx.strokeStyle = '#1a2a33';
-    ctx.lineWidth = 2;
-    for (let y = 0; y < canvas.height; y += 20) {
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#0f3f3a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= WIDTH; i++) {
         ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
+        ctx.moveTo(i * CELL_SIZE, 0);
+        ctx.lineTo(i * CELL_SIZE, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL_SIZE);
+        ctx.lineTo(canvas.width, i * CELL_SIZE);
         ctx.stroke();
     }
     
-    // ===== РАЗДЕЛИТЕЛЬНАЯ ПОЛОСА =====
+    // ===== РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
     const midY = canvas.height / 2;
     ctx.strokeStyle = '#00ffff';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([20, 20]);
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 15]);
     ctx.beginPath();
     ctx.moveTo(0, midY);
     ctx.lineTo(canvas.width, midY);
@@ -256,10 +269,10 @@ function drawRace() {
     // ===== СЛЕД ИГРОКА =====
     if (raceState.player.trail.length > 1) {
         ctx.beginPath();
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = '#00ffff';
         ctx.strokeStyle = '#00ffff';
         for (let i = 0; i < raceState.player.trail.length - 1; i++) {
@@ -274,10 +287,10 @@ function drawRace() {
     // ===== СЛЕД ИИ =====
     if (raceState.ai.trail.length > 1) {
         ctx.beginPath();
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = '#ff3300';
         ctx.strokeStyle = '#ff3300';
         for (let i = 0; i < raceState.ai.trail.length - 1; i++) {
@@ -299,11 +312,20 @@ function drawRace() {
     }
     ctx.shadowBlur = 0;
     
-    // ===== ИГРОК (ТРЕУГОЛЬНИК) =====
+    // ===== ИГРОК (с поворотом) =====
     const px = Math.round(raceState.player.x) * CELL_SIZE + CELL_SIZE / 2;
     const py = Math.round(raceState.player.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
     ctx.translate(px, py);
+    
+    // Поворот в зависимости от направления
+    const dirX = raceState.player.dirX;
+    const dirY = raceState.player.dirY;
+    if (dirX === 1) ctx.rotate(0);
+    else if (dirX === -1) ctx.rotate(Math.PI);
+    else if (dirY === -1) ctx.rotate(-Math.PI / 2);
+    else if (dirY === 1) ctx.rotate(Math.PI / 2);
+    
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#00ffff';
     ctx.fillStyle = '#00ffff';
@@ -315,11 +337,19 @@ function drawRace() {
     ctx.fill();
     ctx.restore();
     
-    // ===== ИИ (ТРЕУГОЛЬНИК) =====
+    // ===== ИИ (с поворотом) =====
     const ax = Math.round(raceState.ai.x) * CELL_SIZE + CELL_SIZE / 2;
     const ay = Math.round(raceState.ai.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
     ctx.translate(ax, ay);
+    
+    const aiDirX = raceState.ai.dirX;
+    const aiDirY = raceState.ai.dirY;
+    if (aiDirX === 1) ctx.rotate(0);
+    else if (aiDirX === -1) ctx.rotate(Math.PI);
+    else if (aiDirY === -1) ctx.rotate(-Math.PI / 2);
+    else if (aiDirY === 1) ctx.rotate(Math.PI / 2);
+    
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#ff3300';
     ctx.fillStyle = '#ff3300';
