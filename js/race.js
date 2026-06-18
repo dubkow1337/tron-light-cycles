@@ -59,10 +59,14 @@ function updateRace() {
     player.x += player.dirX;
     player.y += player.dirY;
     
-    // Ограничения в верхней половине
+    // ===== ОГРАНИЧЕНИЯ ИГРОКА (ВЕРХНЯЯ ПОЛОВИНА) =====
+    // Верхняя граница
     if (player.y < 0) player.y = 0;
+    // Нижняя граница (середина поля)
     if (player.y >= Math.floor(HEIGHT / 2)) player.y = Math.floor(HEIGHT / 2) - 1;
+    // Левая граница
     if (player.x < 0) player.x = 0;
+    // Правая граница
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
     // След игрока
@@ -77,13 +81,17 @@ function updateRace() {
     ai.x += ai.dirX;
     ai.y += ai.dirY;
     
-    // Ограничения в нижней половине
+    // ===== ОГРАНИЧЕНИЯ ИИ (НИЖНЯЯ ПОЛОВИНА) =====
+    // Верхняя граница (середина поля)
     if (ai.y < Math.floor(HEIGHT / 2) + 1) ai.y = Math.floor(HEIGHT / 2) + 1;
+    // Нижняя граница
     if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
+    // Левая граница
     if (ai.x < 0) ai.x = 0;
+    // Правая граница
     if (ai.x >= WIDTH) ai.x = WIDTH - 1;
     
-    // ИИ: проверка препятствий
+    // ИИ: проверка препятствий и манёвры
     const aiObstacleAhead = raceState.obstacles.some(obs => 
         obs.x === Math.round(ai.x) + 1 && obs.y === Math.round(ai.y)
     );
@@ -138,9 +146,10 @@ function updateRace() {
     
     // ===== СПАВН ПРЕПЯТСТВИЙ =====
     if (Math.random() < 0.025) {
+        // Спавним в верхней или нижней половине
         const y = Math.random() > 0.5 ? 
-            1 + Math.floor(Math.random() * 3) : 
-            Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * 3);
+            1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2)) : // верхняя половина
+            Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * (Math.floor(HEIGHT / 2) - 2)); // нижняя половина
         raceState.obstacles.push({
             x: WIDTH - 2,
             y: y,
@@ -166,7 +175,7 @@ function updateRace() {
 function drawRace() {
     if (!raceState.active && !raceState.win && !raceState.gameOver) return;
     
-    // ===== СЕТКА (КАК В ОСНОВНОМ РЕЖИМЕ) =====
+    // ===== СЕТКА =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
