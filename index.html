@@ -17,38 +17,44 @@
             Ваш браузер не поддерживает видео.
         </video>
         
-        <div class="menu-container">
-            <h1 class="game-title">TRON: LIGHT CYCLES</h1>
+        <div class="menu-wrapper">
+            <!-- ОТДЕЛЬНЫЙ ЗАГОЛОВОК (БОЛЬШОЙ) -->
+            <div class="game-title-container">
+                <h1 class="game-title-main">TRON</h1>
+                <h2 class="game-title-sub">LIGHT CYCLES</h2>
+            </div>
             
-            <!-- ВЫБОР ПРОТИВНИКА -->
-            <div class="menu-section">
-                <h3>🎮 ПРОТИВНИК</h3>
-                <div class="menu-grid">
-                    <button id="menuOpponent2p" class="menu-btn" data-group="opponent">ДВА ИГРОКА</button>
-                    <button id="menuOpponentAI" class="menu-btn" data-group="opponent">ПРОТИВ ИИ</button>
-                    <button id="menuOpponentSurvival" class="menu-btn" data-group="opponent">ВЫЖИВАНИЕ</button>
+            <div class="menu-container">
+                <!-- ВЫБОР ПРОТИВНИКА -->
+                <div class="menu-section">
+                    <h3>🎮 ПРОТИВНИК</h3>
+                    <div class="menu-grid">
+                        <button id="menuOpponent2p" class="menu-btn" data-group="opponent">ДВА ИГРОКА</button>
+                        <button id="menuOpponentAI" class="menu-btn" data-group="opponent">ПРОТИВ ИИ</button>
+                        <button id="menuOpponentSurvival" class="menu-btn" data-group="opponent">ВЫЖИВАНИЕ</button>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- ВЫБОР РЕЖИМА МАТЧА -->
-            <div class="menu-section">
-                <h3>🏆 РЕЖИМ</h3>
-                <div class="menu-grid">
-                    <button id="menuMatchClassic" class="menu-btn" data-group="match">КЛАССИКА</button>
-                    <button id="menuMatchTournament" class="menu-btn" data-group="match">ТУРНИР ДО 3</button>
-                    <button id="menuMatchRace" class="menu-btn" data-group="match">🏁 ГОНКИ</button>
+                
+                <!-- ВЫБОР РЕЖИМА МАТЧА -->
+                <div class="menu-section">
+                    <h3>🏆 РЕЖИМ</h3>
+                    <div class="menu-grid">
+                        <button id="menuMatchClassic" class="menu-btn" data-group="match">КЛАССИКА</button>
+                        <button id="menuMatchTournament" class="menu-btn" data-group="match">ТУРНИР ДО 3</button>
+                        <button id="menuMatchRace" class="menu-btn" data-group="match">🏁 ГОНКИ</button>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- КНОПКА ИГРАТЬ -->
-            <div class="menu-section">
-                <button id="menuPlayBtn" class="play-btn">▶ НАЧАТЬ</button>
-            </div>
-            
-            <!-- НИЖНЯЯ ПАНЕЛЬ (ЗВУК + РЕКОРД) -->
-            <div class="menu-footer">
-                <button id="menuSoundToggle" class="sound-btn">🔊 ЗВУК</button>
-                <div class="menu-record">🏆 РЕКОРД: <span id="menuRecordDisplay">0</span></div>
+                
+                <!-- КНОПКА ИГРАТЬ -->
+                <div class="menu-section">
+                    <button id="menuPlayBtn" class="play-btn">▶ НАЧАТЬ</button>
+                </div>
+                
+                <!-- НИЖНЯЯ ПАНЕЛЬ (ЗВУК + РЕКОРД) -->
+                <div class="menu-footer">
+                    <button id="menuSoundToggle" class="sound-btn">🔊 ЗВУК</button>
+                    <div class="menu-record">🏆 РЕКОРД: <span id="menuRecordDisplay">0</span></div>
+                </div>
             </div>
 
             <!-- НОВЫЕ БЛОКИ ВНИЗУ -->
