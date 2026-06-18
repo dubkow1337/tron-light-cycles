@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" (СИНЯЯ ЛИНИЯ ВСЕГДА, КРАСНАЯ СТЕНА — ВРЕМЕННАЯ) ==========
+// ========== РЕЖИМ "ГОНКИ" (ВЕРТИКАЛЬНАЯ СТЕНА НА ПУТИ К ФИНИШУ) ==========
 
 let raceState = {
     active: false,
@@ -9,6 +9,7 @@ let raceState = {
     gameOver: false,
     win: false,
     finishX: 0,
+    wallX: 0,                  // ← координата X вертикальной стены
     countdown: 0,
     countdownActive: false,
     speed: 0.7,
@@ -24,6 +25,7 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
+    wallX: Math.floor(WIDTH / 2) - 2,  // ← стена примерно посередине
     obstacleSpeed: 1.5,
     speed: 0.7,
     spawnRate: 0.05,
@@ -43,6 +45,7 @@ function initRace() {
     raceState.timer = 0;
     raceState.startTime = 0;
     raceState.finishRevealed = false;
+    raceState.wallX = RACE_CONFIG.wallX;
     
     raceState.player = {
         x: RACE_CONFIG.playerStartX,
@@ -81,7 +84,7 @@ function initRace() {
             raceState.startTime = Date.now();
             clearInterval(countdownInterval);
             setTimeout(() => {
-                showMessage('⏳ ОГРАНИЧЕНИЕ: НЕ ПЕРЕСЕКАЙТЕ КРАСНУЮ СТЕНУ!');
+                showMessage('⏳ СТЕНА БЛОКИРУЕТ ПРОХОД! ЖДИТЕ 30 СЕКУНД!');
             }, 1000);
         }
     }, 1000);
@@ -90,14 +93,14 @@ function initRace() {
 function updateRace() {
     if (!raceState.active || raceState.gameOver || raceState.win) return;
     
-    // ===== ТАЙМЕР (реальное время) =====
+    // ===== ТАЙМЕР =====
     if (raceState.phase === 'restricted') {
         const now = Date.now();
         raceState.timer = (now - raceState.startTime) / 1000;
         if (raceState.timer >= RACE_CONFIG.phaseTime) {
             raceState.phase = 'unrestricted';
             raceState.finishRevealed = true;
-            showMessage('🚨 СТЕНА УБРАНА! ФИНИШ ОТКРЫТ! ДВИЖЕНИЕ ПО ВСЕМУ ПОЛЮ!');
+            showMessage('🚨 СТЕНА РАЗРУШЕНА! ФИНИШ ОТКРЫТ!');
             raceState.speed = 0.9;
         }
     }
@@ -105,13 +108,26 @@ function updateRace() {
     const player = raceState.player;
     const ai = raceState.ai;
     const speed = raceState.speed;
+    const wallX = raceState.wallX;
     const isRestricted = raceState.phase === 'restricted';
     
     // ===== ДВИЖЕНИЕ ИГРОКА =====
-    player.x += player.dirX * speed;
-    player.y += player.dirY * speed;
+    let newX = player.x + player.dirX * speed;
+    let newY = player.y + player.dirY * speed;
     
-    // ===== ОГРАНИЧЕНИЯ (красная стена не даёт пересечь середину) =====
+    // ===== СТЕНА: запрет прохода вправо за wallX =====
+    if (isRestricted) {
+        // Если пытаемся пересечь стену (x становится >= wallX и dirX > 0)
+        if (player.dirX > 0 && newX >= wallX) {
+            newX = wallX - 0.5; // останавливаем прямо перед стеной
+        }
+        // Если пытаемся уйти влево от стены — разрешено
+        if (player.dirX < 0 && newX < 0) newX = 0;
+    }
+    player.x = newX;
+    player.y = newY;
+    
+    // ===== ОГРАНИЧЕНИЯ =====
     if (isRestricted) {
         const maxY = Math.floor(HEIGHT / 2) - 1;
         if (player.y < 0) player.y = 0;
@@ -142,16 +158,15 @@ function updateRace() {
         }
     }
     
-    // ===== УМНЫЙ ИИ (проверка на 3 шага вперёд) =====
+    // ===== ДВИЖЕНИЕ ИИ (умный) =====
     const aiX = Math.round(ai.x);
     const aiY = Math.round(ai.y);
     
-    // Проверяем препятствия перед ИИ
+    // Проверяем препятствия перед ИИ на 3 шага вперёд
     let obstacleAhead = false;
-    let obstacleDir = null;
     for (let step = 1; step <= 3; step++) {
         const checkX = aiX + step;
-        const checkY = aiY; // ИИ всегда движется вправо, но может менять Y
+        const checkY = aiY;
         for (let obs of raceState.obstacles) {
             const ox = Math.floor(obs.x);
             const oy = obs.y;
@@ -169,7 +184,10 @@ function updateRace() {
         if (obstacleAhead) break;
     }
     
-    if (obstacleAhead) {
+    // Также проверяем, не упрётся ли ИИ в стену
+    const aiWillHitWall = isRestricted && (ai.dirX > 0 && ai.x + speed >= wallX);
+    
+    if (obstacleAhead || aiWillHitWall) {
         // Найти свободное направление (вверх или вниз)
         let upFree = false, downFree = false;
         const upY = aiY - 1;
@@ -211,12 +229,10 @@ function updateRace() {
         } else if (downFree) {
             ai.dirY = 1;
         } else {
-            // Если всё заблокировано, пытаемся остаться на месте (движение вправо)
             ai.dirY = 0;
         }
         ai.dirX = 0;
     } else {
-        // Случайные манёвры для непредсказуемости
         if (Math.random() < 0.01) {
             ai.dirY = (Math.random() < 0.5) ? 1 : -1;
         } else if (Math.random() < 0.02) {
@@ -225,9 +241,18 @@ function updateRace() {
         ai.dirX = 1;
     }
     
-    // Движение ИИ
-    ai.x += ai.dirX * speed;
-    ai.y += ai.dirY * speed;
+    // Движение ИИ с учётом стены
+    let aiNewX = ai.x + ai.dirX * speed;
+    let aiNewY = ai.y + ai.dirY * speed;
+    
+    if (isRestricted) {
+        if (ai.dirX > 0 && aiNewX >= wallX) {
+            aiNewX = wallX - 0.5;
+        }
+        if (ai.dirX < 0 && aiNewX < 0) aiNewX = 0;
+    }
+    ai.x = aiNewX;
+    ai.y = aiNewY;
     
     // Ограничения для ИИ
     if (isRestricted) {
@@ -386,7 +411,7 @@ function drawRace() {
         ctx.stroke();
     }
     
-    // ===== ПОСТОЯННАЯ СИНЯЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
+    // ===== ПОСТОЯННАЯ СИНЯЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ (горизонтальная) =====
     const midY = canvas.height / 2;
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 2;
@@ -400,25 +425,21 @@ function drawRace() {
     ctx.setLineDash([]);
     ctx.shadowBlur = 0;
     
-    // ===== КРАСНАЯ СТЕНА-ПРЕГРАДА (только в restricted) =====
+    // ===== ВЕРТИКАЛЬНАЯ КРАСНАЯ СТЕНА (блокирует проход) =====
     if (raceState.phase === 'restricted') {
-        ctx.strokeStyle = '#ff3333';
-        ctx.lineWidth = 6;
-        ctx.setLineDash([]);
-        ctx.shadowBlur = 15;
+        const wallX = raceState.wallX * CELL_SIZE;
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+        ctx.shadowBlur = 20;
         ctx.shadowColor = '#ff0000';
-        ctx.beginPath();
-        ctx.moveTo(0, midY);
-        ctx.lineTo(canvas.width, midY);
-        ctx.stroke();
+        ctx.fillRect(wallX - 4, 0, 8, canvas.height);
         ctx.shadowBlur = 0;
-        // Дополнительно рисуем яркие красные точки (эффект "стена")
-        for (let x = 0; x < canvas.width; x += 30) {
-            ctx.fillStyle = '#ff0000';
-            ctx.shadowBlur = 20;
+        // Рисуем мигающие красные огни
+        for (let y = 0; y < canvas.height; y += 30) {
+            ctx.fillStyle = (Math.floor(Date.now() / 300) % 2 === 0) ? '#ff0000' : '#ff6666';
+            ctx.shadowBlur = 15;
             ctx.shadowColor = '#ff0000';
             ctx.beginPath();
-            ctx.arc(x, midY, 6, 0, Math.PI * 2);
+            ctx.arc(wallX, y, 6, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.shadowBlur = 0;
@@ -536,6 +557,10 @@ function drawRace() {
         ctx.fillStyle = '#ffaa00';
         ctx.font = 'bold 20px Orbitron';
         ctx.fillText(`⏳ ${Math.ceil(remaining)}с`, 20, 40);
+        // Подпись стены
+        ctx.fillStyle = '#ff3333';
+        ctx.font = 'bold 16px Orbitron';
+        ctx.fillText('🚧 СТЕНА', raceState.wallX * CELL_SIZE - 40, 30);
     }
 }
 
