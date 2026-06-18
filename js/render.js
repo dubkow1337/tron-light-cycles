@@ -2,12 +2,10 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
-let boss = null; // Для безопасности
+let boss = null;
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-// КОНСТАНТЫ БЕРУТСЯ ИЗ player.js
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -51,7 +49,10 @@ function updateParticles() {
             i--;
         }
     }
-    updateFireworks(); // ← обновляем салют
+    // Салют обновляем только если функция существует
+    if (typeof updateFireworks === 'function') {
+        updateFireworks();
+    }
 }
 
 function drawParticles() {
@@ -61,17 +62,19 @@ function drawParticles() {
         ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+    // Салют рисуем только если функция существует
+    if (typeof drawFireworks === 'function') {
+        drawFireworks();
+    }
 }
 
 function draw() {
     if (!ctx) return;
     
-    // ===== ФОН =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
-    // ===== СЕТКА =====
     ctx.strokeStyle = '#0f3f3a';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
@@ -85,7 +88,6 @@ function draw() {
         ctx.stroke();
     }
     
-    // ===== СЛЕДЫ ИГРОКОВ =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.trail && p.trail.length >= 2) {
@@ -105,7 +107,6 @@ function draw() {
         }
     }
     
-    // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
             if (e.trail && e.trail.length >= 2) {
@@ -123,8 +124,6 @@ function draw() {
                 ctx.stroke();
             }
         }
-        
-        // Враги — треугольники
         for (let e of survivalEnemies) {
             const cx = e.x * CELL_SIZE + CELL_SIZE / 2;
             const cy = e.y * CELL_SIZE + CELL_SIZE / 2;
@@ -147,7 +146,6 @@ function draw() {
         }
     }
     
-    // ===== БОСС =====
     if (typeof boss !== 'undefined' && boss && boss.alive) {
         if (boss.trail && boss.trail.length >= 2) {
             ctx.beginPath();
@@ -163,7 +161,6 @@ function draw() {
             }
             ctx.stroke();
         }
-        
         const size = boss.size || 3;
         const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
         const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -186,7 +183,6 @@ function draw() {
         ctx.closePath();
         ctx.fill();
         ctx.restore();
-        
         if (boss.maxHealth) {
             const healthBarWidth = 60;
             const healthBarX = boss.x * CELL_SIZE - healthBarWidth/2 + (size * CELL_SIZE) / 2;
@@ -199,13 +195,9 @@ function draw() {
         }
     }
     
-    // ===== САЛЮТ (рисовать перед мотоциклами, чтобы был фоном, но можно и поверх) =====
-    drawFireworks();
-    
-    // ===== ЧАСТИЦЫ =====
+    // Салют рисуем через drawParticles
     drawParticles();
     
-    // ===== ЭФФЕКТ СТОЛКНОВЕНИЯ =====
     if (crashEffect.active) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ffffff';
@@ -215,12 +207,10 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // ===== БОНУСЫ =====
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
     
-    // ===== МОТОЦИКЛЫ ИГРОКОВ =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.alive) {
@@ -254,7 +244,6 @@ function draw() {
         }
     }
     
-    // ===== ОБРАТНЫЙ ОТСЧЁТ =====
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
@@ -272,7 +261,6 @@ function draw() {
         }
     }
     
-    // ===== ПАУЗА =====
     if (paused && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
         ctx.shadowBlur = 10;
@@ -284,33 +272,38 @@ function draw() {
     ctx.shadowBlur = 0;
 }
 
-// ========== САЛЮТ ПРИ ПОБЕДЕ ==========
+// ========== САЛЮТ (безопасный) ==========
 
 let fireworkParticles = [];
 let fireworkActive = false;
 
 function startFireworks(color, count = 6) {
-    fireworkParticles = [];
-    fireworkActive = true;
-    const colors = color === '#00ffff' ? ['#00ffff', '#0088ff', '#00ffcc'] : ['#ffaa00', '#ff6600', '#ffcc44'];
-    
-    for (let burst = 0; burst < count; burst++) {
-        setTimeout(() => {
-            // Слева
-            const x1 = 50 + Math.random() * 100;
-            const y1 = 50 + Math.random() * (canvas.height - 100);
-            createFireworkBurst(x1, y1, colors);
-            // Справа
-            const x2 = canvas.width - 50 - Math.random() * 100;
-            const y2 = 50 + Math.random() * (canvas.height - 100);
-            createFireworkBurst(x2, y2, colors);
-        }, burst * 300);
-    }
-    
-    setTimeout(() => {
-        fireworkActive = false;
+    try {
+        if (!canvas || !ctx) return;
         fireworkParticles = [];
-    }, 5000);
+        fireworkActive = true;
+        const colors = color === '#00ffff' ? ['#00ffff', '#0088ff', '#00ffcc'] : ['#ffaa00', '#ff6600', '#ffcc44'];
+        
+        for (let burst = 0; burst < count; burst++) {
+            setTimeout(() => {
+                try {
+                    const x1 = 50 + Math.random() * 100;
+                    const y1 = 50 + Math.random() * (canvas.height - 100);
+                    createFireworkBurst(x1, y1, colors);
+                    const x2 = canvas.width - 50 - Math.random() * 100;
+                    const y2 = 50 + Math.random() * (canvas.height - 100);
+                    createFireworkBurst(x2, y2, colors);
+                } catch(e) {}
+            }, burst * 300);
+        }
+        
+        setTimeout(() => {
+            fireworkActive = false;
+            fireworkParticles = [];
+        }, 5000);
+    } catch(e) {
+        console.warn('Салют не удался:', e);
+    }
 }
 
 function createFireworkBurst(x, y, colors) {
@@ -335,28 +328,35 @@ function createFireworkBurst(x, y, colors) {
 
 function updateFireworks() {
     if (!fireworkActive) return;
-    for (let i = fireworkParticles.length - 1; i >= 0; i--) {
-        const p = fireworkParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.03;
-        p.vx *= 0.99;
-        p.life -= p.decay;
-        if (p.life <= 0) {
-            fireworkParticles.splice(i, 1);
+    try {
+        for (let i = fireworkParticles.length - 1; i >= 0; i--) {
+            const p = fireworkParticles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.03;
+            p.vx *= 0.99;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                fireworkParticles.splice(i, 1);
+            }
         }
-    }
+        if (fireworkParticles.length === 0 && fireworkActive) {
+            // можно ничего не делать
+        }
+    } catch(e) {}
 }
 
 function drawFireworks() {
     if (!fireworkActive || fireworkParticles.length === 0) return;
-    for (const p of fireworkParticles) {
-        ctx.globalAlpha = p.life;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = p.color;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
-    }
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
+    try {
+        for (const p of fireworkParticles) {
+            ctx.globalAlpha = p.life;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.color;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+    } catch(e) {}
 }
