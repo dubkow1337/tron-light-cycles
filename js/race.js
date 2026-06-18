@@ -16,7 +16,7 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: HEIGHT - 3,
     finishX: WIDTH - 4,
-    obstacleSpeed: 0.15,
+    obstacleSpeed: 0.3,
     aiSpeed: 0.5
 };
 
@@ -59,13 +59,13 @@ function updateRace() {
     player.x += player.dirX;
     player.y += player.dirY;
     
-    // Ограничиваем игрока в верхней половине
+    // Ограничения в верхней половине
     if (player.y < 0) player.y = 0;
     if (player.y >= Math.floor(HEIGHT / 2)) player.y = Math.floor(HEIGHT / 2) - 1;
     if (player.x < 0) player.x = 0;
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
-    // Добавляем след игрока
+    // След игрока
     if (player.trail.length === 0 || 
         player.trail[player.trail.length-1].x !== player.x || 
         player.trail[player.trail.length-1].y !== player.y) {
@@ -77,18 +77,17 @@ function updateRace() {
     ai.x += ai.dirX;
     ai.y += ai.dirY;
     
-    // Ограничиваем ИИ в нижней половине
+    // Ограничения в нижней половине
     if (ai.y < Math.floor(HEIGHT / 2) + 1) ai.y = Math.floor(HEIGHT / 2) + 1;
     if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
     if (ai.x < 0) ai.x = 0;
     if (ai.x >= WIDTH) ai.x = WIDTH - 1;
     
-    // Проверяем препятствия перед ИИ
+    // ИИ: проверка препятствий
     const aiObstacleAhead = raceState.obstacles.some(obs => 
         obs.x === Math.round(ai.x) + 1 && obs.y === Math.round(ai.y)
     );
     if (aiObstacleAhead) {
-        // Пытаемся обойти
         const up = ai.y - 1 >= Math.floor(HEIGHT / 2) + 1;
         const down = ai.y + 1 < HEIGHT;
         if (up && !raceState.obstacles.some(o => o.x === Math.round(ai.x) && o.y === ai.y - 1)) {
@@ -97,17 +96,15 @@ function updateRace() {
             ai.dirY = 1;
         }
     } else {
-        // Иногда меняем полосу для манёвров
         if (Math.random() < 0.005) {
             ai.dirY = (Math.random() > 0.5) ? 1 : -1;
         }
-        // Сбрасываем вертикальное движение, если не нужно
         if (Math.random() < 0.02) {
             ai.dirY = 0;
         }
     }
     
-    // Добавляем след ИИ
+    // След ИИ
     if (ai.trail.length === 0 || 
         ai.trail[ai.trail.length-1].x !== Math.round(ai.x) || 
         ai.trail[ai.trail.length-1].y !== Math.round(ai.y)) {
@@ -115,21 +112,20 @@ function updateRace() {
         if (ai.trail.length > 30) ai.trail.shift();
     }
     
-    // ===== ДВИЖЕНИЕ ПРЕПЯТСТВИЙ (ДЛЯ ОБЕИХ ПОЛОВИН) =====
+    // ===== ДВИЖЕНИЕ ПРЕПЯТСТВИЙ =====
     for (let i = raceState.obstacles.length - 1; i >= 0; i--) {
         const obs = raceState.obstacles[i];
         obs.x -= RACE_CONFIG.obstacleSpeed;
         
-        // Проверка столкновения с игроком
+        // Столкновение с игроком
         if (Math.floor(obs.x) === player.x && obs.y === player.y) {
             raceState.gameOver = true;
             showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ПРЕПЯТСТВИЕ!');
             return;
         }
         
-        // Проверка столкновения с ИИ
+        // Столкновение с ИИ
         if (Math.floor(obs.x) === Math.round(ai.x) && obs.y === Math.round(ai.y)) {
-            // ИИ погибает — убираем препятствие
             raceState.obstacles.splice(i, 1);
             showMessage('🤖 ИИ ВРЕЗАЛСЯ В ПРЕПЯТСТВИЕ!');
             continue;
@@ -140,11 +136,11 @@ function updateRace() {
         }
     }
     
-    // ===== СПАВН ПРЕПЯТСТВИЙ (В ОБЕИХ ПОЛОВИНАХ) =====
+    // ===== СПАВН ПРЕПЯТСТВИЙ =====
     if (Math.random() < 0.025) {
         const y = Math.random() > 0.5 ? 
-            1 + Math.floor(Math.random() * 3) : // верхняя половина
-            Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * 3); // нижняя половина
+            1 + Math.floor(Math.random() * 3) : 
+            Math.floor(HEIGHT / 2) + 1 + Math.floor(Math.random() * 3);
         raceState.obstacles.push({
             x: WIDTH - 2,
             y: y,
@@ -170,9 +166,22 @@ function updateRace() {
 function drawRace() {
     if (!raceState.active && !raceState.win && !raceState.gameOver) return;
     
-    // ===== ФОН =====
+    // ===== СЕТКА (КАК В ОСНОВНОМ РЕЖИМЕ) =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#0f3f3a';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= WIDTH; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_SIZE, 0);
+        ctx.lineTo(i * CELL_SIZE, canvas.height);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * CELL_SIZE);
+        ctx.lineTo(canvas.width, i * CELL_SIZE);
+        ctx.stroke();
+    }
     
     // ===== РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
     const midY = canvas.height / 2;
@@ -185,13 +194,6 @@ function drawRace() {
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // ===== ПОДПИСИ =====
-    ctx.fillStyle = 'rgba(0,255,255,0.15)';
-    ctx.font = '14px Orbitron';
-    ctx.fillText('ИГРОК', 10, 30);
-    ctx.fillStyle = 'rgba(255,50,50,0.15)';
-    ctx.fillText('ИИ', 10, midY + 30);
-    
     // ===== ФИНИШНАЯ ПОЛОСА =====
     const fx = raceState.finishX * CELL_SIZE;
     for (let y = 0; y < canvas.height; y += 10) {
@@ -201,6 +203,7 @@ function drawRace() {
     ctx.fillStyle = '#ffff00';
     ctx.font = 'bold 16px Orbitron';
     ctx.fillText('🏁', fx + 12, 30);
+    ctx.shadowBlur = 0;
     
     // ===== СЛЕД ИГРОКА =====
     if (raceState.player.trail.length > 1) {
@@ -237,6 +240,7 @@ function drawRace() {
         }
         ctx.stroke();
     }
+    ctx.shadowBlur = 0;
     
     // ===== ПРЕПЯТСТВИЯ =====
     for (let obs of raceState.obstacles) {
@@ -282,7 +286,6 @@ function drawRace() {
     ctx.shadowBlur = 0;
 }
 
-// ===== ЗАПУСК РЕЖИМА =====
 function startRace() {
     opponentType = 'race';
     initRace();
