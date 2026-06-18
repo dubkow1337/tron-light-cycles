@@ -87,7 +87,6 @@ function spawnBoss() {
         trailOffsetY: Math.floor(BOSS_SIZE / 2)
     };
     
-    // Начальная точка следа
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
@@ -170,7 +169,21 @@ function updateBoss() {
         boss.trail.push({ x: trailX, y: trailY });
         if (boss.trail.length > 100) boss.trail.shift();
         
-        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ ИГРОКА СО СЛЕДОМ БОССА =====
+        for (let t = 0; t < boss.trail.length - 1; t++) {
+            const seg = boss.trail[t];
+            if (player.x === seg.x && player.y === seg.y) {
+                // Игрок коснулся следа босса!
+                player.alive = false;
+                if (typeof explode === 'function') explode(player.x, player.y, player.color);
+                gameActive = false;
+                showMessage('💀 ВЫ ВРЕЗАЛИСЬ В СЛЕД LIGHT RUNNER!');
+                if (typeof stopBgMusic === 'function') stopBgMusic();
+                return;
+            }
+        }
+        
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА (БОСС ПОЛУЧАЕТ УРОН) =====
         let hitPlayerTrail = false;
         const playerTrail = player.trail || [];
         
@@ -219,7 +232,7 @@ function updateBoss() {
             }
         }
         
-        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ИГРОКОМ =====
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ТЕЛОМ БОССА (ИГРОК УМИРАЕТ) =====
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
             for (let dy = 0; dy < BOSS_SIZE; dy++) {
                 const bx = boss.x + dx;
