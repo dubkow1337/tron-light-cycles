@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" ==========
+// ========== РЕЖИМ "ГОНКИ" (ПЕРЕРАБОТАННЫЙ) ==========
 
 let raceState = {
     active: false,
@@ -10,7 +10,7 @@ let raceState = {
     finishX: 0,
     countdown: 0,
     countdownActive: false,
-    speed: 1
+    speed: 0.7           // ← общая скорость (снижена)
 };
 
 const RACE_CONFIG = {
@@ -19,10 +19,11 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
-    obstacleSpeed: 1.2,        // ← БЫСТРЕЕ (было 0.8)
-    aiSpeed: 0.5,
-    spawnRate: 0.06,           // ← ЧАЩЕ (было 0.04)
-    speedMultiplier: 1
+    obstacleSpeed: 1.5,      // ← быстрее, чтобы заставлять уворачиваться
+    speed: 0.7,              // ← общая скорость движения
+    spawnRate: 0.05,         // ← частота спавна
+    doubleChance: 0.3,       // ← вероятность двойного блока
+    playerAimChance: 0.6     // ← вероятность спавна на линии игрока
 };
 
 function initRace() {
@@ -31,7 +32,7 @@ function initRace() {
     raceState.win = false;
     raceState.countdown = 3;
     raceState.countdownActive = true;
-    raceState.speed = 1;
+    raceState.speed = RACE_CONFIG.speed;
     
     // Игрок
     raceState.player = {
@@ -42,13 +43,14 @@ function initRace() {
         trail: [{ x: RACE_CONFIG.playerStartX, y: RACE_CONFIG.playerY }]
     };
     
-    // ИИ
+    // ИИ (такая же скорость, как у игрока)
     raceState.ai = {
         x: RACE_CONFIG.aiStartX,
         y: RACE_CONFIG.aiY,
         dirX: 1,
         dirY: 0,
-        trail: [{ x: RACE_CONFIG.aiStartX, y: RACE_CONFIG.aiY }]
+        trail: [{ x: RACE_CONFIG.aiStartX, y: RACE_CONFIG.aiY }],
+        speed: RACE_CONFIG.speed   // ← теперь ИИ имеет ту же скорость
     };
     
     raceState.obstacles = [];
@@ -82,10 +84,11 @@ function updateRace() {
     
     const player = raceState.player;
     const ai = raceState.ai;
+    const speed = raceState.speed;
     
     // ===== ДВИЖЕНИЕ ИГРОКА =====
-    player.x += player.dirX * raceState.speed;
-    player.y += player.dirY * raceState.speed;
+    player.x += player.dirX * speed;
+    player.y += player.dirY * speed;
     
     // ===== ОГРАНИЧЕНИЯ =====
     const maxY = Math.floor(HEIGHT / 2) - 1;
@@ -113,9 +116,9 @@ function updateRace() {
         }
     }
     
-    // ===== ДВИЖЕНИЕ ИИ =====
-    ai.x += ai.dirX * RACE_CONFIG.aiSpeed;
-    ai.y += ai.dirY * RACE_CONFIG.aiSpeed;
+    // ===== ДВИЖЕНИЕ ИИ (такая же скорость) =====
+    ai.x += ai.dirX * speed;
+    ai.y += ai.dirY * speed;
     
     // ===== ОГРАНИЧЕНИЯ ИИ =====
     const minAIY = Math.floor(HEIGHT / 2) + 1;
@@ -125,15 +128,48 @@ function updateRace() {
     if (ai.x >= WIDTH) ai.x = WIDTH - 1;
     
     // ИИ: проверка препятствий
-    const aiObstacleAhead = raceState.obstacles.some(obs => 
-        obs.x === Math.round(ai.x) + 1 && obs.y === Math.round(ai.y)
-    );
+    const aiObstacleAhead = raceState.obstacles.some(obs => {
+        const ox = Math.floor(obs.x);
+        const oy = obs.y;
+        const aiX = Math.round(ai.x);
+        const aiY = Math.round(ai.y);
+        // Проверяем все клетки двойного блока
+        for (let dx = 0; dx < obs.size; dx++) {
+            for (let dy = 0; dy < obs.size; dy++) {
+                if (ox + dx === aiX + 1 && oy + dy === aiY) return true;
+            }
+        }
+        return false;
+    });
+    
     if (aiObstacleAhead) {
         const up = ai.y - 1 >= minAIY;
         const down = ai.y + 1 < HEIGHT;
-        if (up && !raceState.obstacles.some(o => o.x === Math.round(ai.x) && o.y === ai.y - 1)) {
+        if (up && !raceState.obstacles.some(o => {
+            const ox = Math.floor(o.x);
+            const oy = o.y;
+            const aiX = Math.round(ai.x);
+            const aiY = Math.round(ai.y);
+            for (let dx = 0; dx < o.size; dx++) {
+                for (let dy = 0; dy < o.size; dy++) {
+                    if (ox + dx === aiX && oy + dy === aiY - 1) return true;
+                }
+            }
+            return false;
+        })) {
             ai.dirY = -1;
-        } else if (down && !raceState.obstacles.some(o => o.x === Math.round(ai.x) && o.y === ai.y + 1)) {
+        } else if (down && !raceState.obstacles.some(o => {
+            const ox = Math.floor(o.x);
+            const oy = o.y;
+            const aiX = Math.round(ai.x);
+            const aiY = Math.round(ai.y);
+            for (let dx = 0; dx < o.size; dx++) {
+                for (let dy = 0; dy < o.size; dy++) {
+                    if (ox + dx === aiX && oy + dy === aiY + 1) return true;
+                }
+            }
+            return false;
+        })) {
             ai.dirY = 1;
         }
     } else {
@@ -158,15 +194,39 @@ function updateRace() {
         const obs = raceState.obstacles[i];
         obs.x -= RACE_CONFIG.obstacleSpeed;
         
-        // Столкновение с игроком
-        if (Math.floor(obs.x) === px && obs.y === py) {
+        // Столкновение с игроком (проверяем все клетки блока)
+        let hitPlayer = false;
+        const px2 = Math.round(player.x);
+        const py2 = Math.round(player.y);
+        for (let dx = 0; dx < obs.size; dx++) {
+            for (let dy = 0; dy < obs.size; dy++) {
+                if (Math.floor(obs.x) + dx === px2 && obs.y + dy === py2) {
+                    hitPlayer = true;
+                    break;
+                }
+            }
+            if (hitPlayer) break;
+        }
+        if (hitPlayer) {
             raceState.gameOver = true;
             showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ПРЕПЯТСТВИЕ!');
             return;
         }
         
         // Столкновение с ИИ
-        if (Math.floor(obs.x) === Math.round(ai.x) && obs.y === Math.round(ai.y)) {
+        let hitAI = false;
+        const aiX = Math.round(ai.x);
+        const aiY = Math.round(ai.y);
+        for (let dx = 0; dx < obs.size; dx++) {
+            for (let dy = 0; dy < obs.size; dy++) {
+                if (Math.floor(obs.x) + dx === aiX && obs.y + dy === aiY) {
+                    hitAI = true;
+                    break;
+                }
+            }
+            if (hitAI) break;
+        }
+        if (hitAI) {
             raceState.obstacles.splice(i, 1);
             showMessage('🤖 ИИ ВРЕЗАЛСЯ В ПРЕПЯТСТВИЕ!');
             continue;
@@ -177,18 +237,39 @@ function updateRace() {
         }
     }
     
-    // ===== СПАВН ПРЕПЯТСТВИЙ =====
+    // ===== СПАВН ПРЕПЯТСТВИЙ (с прицелом на игрока) =====
     if (Math.random() < RACE_CONFIG.spawnRate) {
         const maxY = Math.floor(HEIGHT / 2) - 1;
         const minAIY = Math.floor(HEIGHT / 2) + 1;
-        const y = Math.random() > 0.5 ? 
-            1 + Math.floor(Math.random() * (maxY - 1)) : 
-            minAIY + Math.floor(Math.random() * (HEIGHT - minAIY - 1));
+        let y;
+        // С вероятностью 0.6 спавним на линии игрока
+        if (Math.random() < RACE_CONFIG.playerAimChance) {
+            y = Math.round(player.y);
+            // Немного отклоняем, чтобы не было слишком предсказуемо
+            y += Math.floor(Math.random() * 3 - 1);
+            y = Math.max(0, Math.min(maxY, y));
+        } else {
+            y = Math.random() > 0.5 ? 
+                1 + Math.floor(Math.random() * (maxY - 1)) : 
+                minAIY + Math.floor(Math.random() * (HEIGHT - minAIY - 1));
+        }
+        
+        // Определяем размер блока (1x1 или 2x2)
+        const size = Math.random() < RACE_CONFIG.doubleChance ? 2 : 1;
+        // Убедимся, что блок помещается в половине
+        if (size === 2) {
+            if (y + 1 >= Math.floor(HEIGHT / 2) && y < Math.floor(HEIGHT / 2)) {
+                // Если блок пересекает середину, смещаем вверх
+                y = Math.floor(HEIGHT / 2) - 2;
+            }
+            if (y + 1 >= HEIGHT) y = HEIGHT - 2;
+        }
+        
         raceState.obstacles.push({
             x: WIDTH - 2,
             y: y,
             color: '#ff4444',
-            size: 1
+            size: size
         });
     }
     
@@ -227,7 +308,7 @@ function drawRace() {
     
     if (!raceState.active && !raceState.win && !raceState.gameOver) return;
     
-    // ===== СЕТКА (как в основном режиме) =====
+    // ===== СЕТКА =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
@@ -303,29 +384,29 @@ function drawRace() {
     }
     ctx.shadowBlur = 0;
     
-    // ===== ПРЕПЯТСТВИЯ =====
+    // ===== ПРЕПЯТСТВИЯ (с поддержкой двойных блоков) =====
     for (let obs of raceState.obstacles) {
+        const size = obs.size || 1;
         ctx.fillStyle = obs.color;
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ff4444';
-        ctx.fillRect(obs.x * CELL_SIZE, obs.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        for (let dx = 0; dx < size; dx++) {
+            for (let dy = 0; dy < size; dy++) {
+                ctx.fillRect((obs.x + dx) * CELL_SIZE, (obs.y + dy) * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            }
+        }
     }
     ctx.shadowBlur = 0;
     
-    // ===== ИГРОК (с поворотом) =====
+    // ===== ИГРОК (поворот) =====
     const px = Math.round(raceState.player.x) * CELL_SIZE + CELL_SIZE / 2;
     const py = Math.round(raceState.player.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
     ctx.translate(px, py);
-    
-    // Поворот в зависимости от направления
-    const dirX = raceState.player.dirX;
-    const dirY = raceState.player.dirY;
-    if (dirX === 1) ctx.rotate(0);
-    else if (dirX === -1) ctx.rotate(Math.PI);
-    else if (dirY === -1) ctx.rotate(-Math.PI / 2);
-    else if (dirY === 1) ctx.rotate(Math.PI / 2);
-    
+    if (raceState.player.dirX === 1) ctx.rotate(0);
+    else if (raceState.player.dirX === -1) ctx.rotate(Math.PI);
+    else if (raceState.player.dirY === -1) ctx.rotate(-Math.PI / 2);
+    else if (raceState.player.dirY === 1) ctx.rotate(Math.PI / 2);
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#00ffff';
     ctx.fillStyle = '#00ffff';
@@ -337,19 +418,15 @@ function drawRace() {
     ctx.fill();
     ctx.restore();
     
-    // ===== ИИ (с поворотом) =====
+    // ===== ИИ (поворот) =====
     const ax = Math.round(raceState.ai.x) * CELL_SIZE + CELL_SIZE / 2;
     const ay = Math.round(raceState.ai.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
     ctx.translate(ax, ay);
-    
-    const aiDirX = raceState.ai.dirX;
-    const aiDirY = raceState.ai.dirY;
-    if (aiDirX === 1) ctx.rotate(0);
-    else if (aiDirX === -1) ctx.rotate(Math.PI);
-    else if (aiDirY === -1) ctx.rotate(-Math.PI / 2);
-    else if (aiDirY === 1) ctx.rotate(Math.PI / 2);
-    
+    if (raceState.ai.dirX === 1) ctx.rotate(0);
+    else if (raceState.ai.dirX === -1) ctx.rotate(Math.PI);
+    else if (raceState.ai.dirY === -1) ctx.rotate(-Math.PI / 2);
+    else if (raceState.ai.dirY === 1) ctx.rotate(Math.PI / 2);
     ctx.shadowBlur = 15;
     ctx.shadowColor = '#ff3300';
     ctx.fillStyle = '#ff3300';
