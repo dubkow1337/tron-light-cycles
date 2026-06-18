@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ВЫЖИВАНИЕ" (КЛАССИЧЕСКОЕ ДВИЖЕНИЕ) ==========
+// ========== РЕЖИМ "ВЫЖИВАНИЕ" (КЛАССИЧЕСКОЕ ДВИЖЕНИЕ, УМНЫЙ ИИ) ==========
 
 let raceState = {
     active: false,
@@ -9,7 +9,8 @@ let raceState = {
     obstacles: [],
     speed: 1.5,
     startTime: 0,
-    score: 0
+    score: 0,
+    stuckCounter: 0
 };
 
 const RACE_CONFIG = {
@@ -23,7 +24,8 @@ const RACE_CONFIG = {
     speedIncrease: 0.01,
     maxSpeed: 4.0,
     playerSpeed: 0.7,
-    aiSpeed: 0.7
+    aiSpeed: 0.7,
+    stuckThreshold: 10
 };
 
 function initRace() {
@@ -33,6 +35,7 @@ function initRace() {
     raceState.speed = RACE_CONFIG.obstacleSpeed;
     raceState.startTime = 0;
     raceState.score = 0;
+    raceState.stuckCounter = 0;
     
     raceState.player = {
         x: RACE_CONFIG.playerStartX,
@@ -57,6 +60,34 @@ function initRace() {
     raceState.startTime = Date.now();
 }
 
+function isSafeForAI(x, y, trail, obstacles, minY, maxY) {
+    // Проверка границ и половины
+    if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return false;
+    if (y < minY || y > maxY) return false;
+    
+    // Проверка препятствий
+    for (let obs of obstacles) {
+        const ox = Math.floor(obs.x);
+        const oy = obs.y;
+        for (let dx = 0; dx < obs.size; dx++) {
+            for (let dy = 0; dy < obs.size; dy++) {
+                if (ox + dx === Math.round(x) && oy + dy === Math.round(y)) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    // Проверка своего следа (кроме последних двух, чтобы не считать текущую позицию)
+    for (let i = 0; i < trail.length - 2; i++) {
+        if (trail[i].x === Math.round(x) && trail[i].y === Math.round(y)) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
 function updateRace() {
     if (!raceState.active || raceState.gameOver || raceState.win) return;
     
@@ -66,7 +97,7 @@ function updateRace() {
     const ps = RACE_CONFIG.playerSpeed;
     const ais = RACE_CONFIG.aiSpeed;
     
-    // ===== УВЕЛИЧЕНИЕ СКОРОСТИ =====
+    // ===== УСКОРЕНИЕ =====
     const now = Date.now();
     const elapsed = (now - raceState.startTime) / 1000;
     raceState.speed = Math.min(
@@ -81,14 +112,12 @@ function updateRace() {
     player.x += player.dirX * ps;
     player.y += player.dirY * ps;
     
-    // Ограничения (только верхняя половина)
     const maxY = Math.floor(HEIGHT / 2) - 1;
     if (player.y < 0) player.y = 0;
     if (player.y > maxY) player.y = maxY;
     if (player.x < 0) player.x = 0;
     if (player.x >= WIDTH) player.x = WIDTH - 1;
     
-    // След игрока
     const px = Math.round(player.x);
     const py = Math.round(player.y);
     if (player.trail.length === 0 || 
@@ -98,7 +127,6 @@ function updateRace() {
         if (player.trail.length > 40) player.trail.shift();
     }
     
-    // Проверка на свой след
     for (let i = 0; i < player.trail.length - 2; i++) {
         if (player.trail[i].x === px && player.trail[i].y === py) {
             raceState.gameOver = true;
@@ -109,61 +137,121 @@ function updateRace() {
     }
     
     // ============================================================
-    // ===== ИИ (классическое движение с уклонением) =====
+    // ===== ИИ (классическое движение, умный выбор направления) =====
     // ============================================================
-    // Проверяем препятствия впереди
-    const aiX = ai.x;
-    const aiY = ai.y;
     const minAIY = Math.floor(HEIGHT / 2) + 1;
     const maxAIY = HEIGHT - 1;
+    const aiX = ai.x;
+    const aiY = ai.y;
     
-    let obstacleAhead = false;
-    for (let obs of raceState.obstacles) {
-        // Проверяем препятствие на том же Y, что и ИИ (с учётом размера)
-        const distX = obs.x - aiX;
-        if (distX > 0 && distX < 6) {
-            const obsY = obs.y;
-            const obsSize = obs.size || 1;
-            for (let dy = 0; dy < obsSize; dy++) {
-                if (obsY + dy === Math.round(aiY)) {
-                    obstacleAhead = true;
-                    break;
-                }
-            }
-        }
-        if (obstacleAhead) break;
+    // Проверяем, застрял ли ИИ (мало движения)
+    if (Math.abs(ai.x - (ai.prevX || 0)) < 0.01 && Math.abs(ai.y - (ai.prevY || 0)) < 0.01) {
+        raceState.stuckCounter++;
+    } else {
+        raceState.stuckCounter = 0;
+    }
+    ai.prevX = ai.x;
+    ai.prevY = ai.y;
+    
+    // Функция проверки безопасности для ИИ (с учётом половины)
+    function isSafeAI(x, y) {
+        return isSafeForAI(x, y, ai.trail, raceState.obstacles, minAIY, maxAIY);
     }
     
+    // Оцениваем возможные направления (вверх, вниз, влево, вправо)
+    const dirs = [
+        { dx: 1, dy: 0, priority: 4 },  // вправо (высший приоритет)
+        { dx: 0, dy: -1, priority: 3 }, // вверх
+        { dx: 0, dy: 1, priority: 3 },  // вниз
+        { dx: -1, dy: 0, priority: 2 }  // влево (низший)
+    ];
+    
+    // Если ИИ застрял, меняем приоритет: пробуем вверх/вниз
+    if (raceState.stuckCounter > RACE_CONFIG.stuckThreshold) {
+        dirs[0].priority = 2; // вправо становится менее приоритетным
+        dirs[1].priority = 4;
+        dirs[2].priority = 4;
+        raceState.stuckCounter = 0;
+    }
+    
+    // Проверяем, есть ли препятствие прямо перед ИИ (на 2-3 шага)
+    let obstacleAhead = false;
+    for (let step = 1; step <= 3; step++) {
+        const testX = aiX + ai.dirX * step * ais;
+        const testY = aiY + ai.dirY * step * ais;
+        if (!isSafeAI(testX, testY)) {
+            obstacleAhead = true;
+            break;
+        }
+    }
+    
+    // Если препятствие впереди, увеличиваем приоритет вертикальных направлений
     if (obstacleAhead) {
-        // Уклоняемся — меняем вертикальное направление
-        const up = aiY - 1 >= minAIY;
-        const down = aiY + 1 <= maxAIY;
-        if (up && down) {
+        dirs[1].priority = 5;
+        dirs[2].priority = 5;
+    }
+    
+    // Выбираем лучшее направление
+    let bestDir = null;
+    let bestScore = -Infinity;
+    
+    for (let dir of dirs) {
+        // Проверяем безопасность на 3 шага вперёд
+        let safe = true;
+        for (let step = 1; step <= 3; step++) {
+            const testX = aiX + dir.dx * step * ais;
+            const testY = aiY + dir.dy * step * ais;
+            if (!isSafeAI(testX, testY)) {
+                safe = false;
+                break;
+            }
+        }
+        if (safe) {
+            let score = dir.priority;
+            // Бонус за движение в сторону, где меньше препятствий
+            // (можно добавить случайность)
+            score += Math.random() * 0.5;
+            if (dir.dx === 1) score += 2; // предпочтение вправо
+            if (dir.dx === -1) score -= 1; // штраф за движение влево
+            if (dir.dy === -1 && aiY > (minAIY + 2)) score += 1;
+            if (dir.dy === 1 && aiY < (maxAIY - 2)) score += 1;
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestDir = dir;
+            }
+        }
+    }
+    
+    // Если безопасное направление найдено — применяем
+    if (bestDir) {
+        ai.dirX = bestDir.dx;
+        ai.dirY = bestDir.dy;
+    } else {
+        // Если нет безопасного направления, пытаемся двигаться вверх или вниз
+        const upSafe = isSafeAI(aiX, aiY - 1);
+        const downSafe = isSafeAI(aiX, aiY + 1);
+        if (upSafe && downSafe) {
+            ai.dirX = 0;
             ai.dirY = (Math.random() < 0.5) ? -1 : 1;
-        } else if (up) {
+        } else if (upSafe) {
+            ai.dirX = 0;
             ai.dirY = -1;
-        } else if (down) {
+        } else if (downSafe) {
+            ai.dirX = 0;
             ai.dirY = 1;
         } else {
-            // Если некуда уклоняться, поворачиваем назад (влево)
-            ai.dirX = -1;
-        }
-        ai.dirX = 1; // продолжаем двигаться вправо
-    } else {
-        // Случайные манёвры
-        if (Math.random() < 0.01) {
-            ai.dirY = (Math.random() < 0.5) ? 1 : -1;
-        } else if (Math.random() < 0.02) {
+            // Абсолютный крайний случай: остаёмся на месте (но этого не должно быть)
+            ai.dirX = 0;
             ai.dirY = 0;
         }
-        ai.dirX = 1;
     }
     
     // Движение ИИ
     ai.x += ai.dirX * ais;
     ai.y += ai.dirY * ais;
     
-    // Ограничения ИИ (нижняя половина)
+    // Ограничения (нижняя половина)
     if (ai.y < minAIY) ai.y = minAIY;
     if (ai.y > maxAIY) ai.y = maxAIY;
     if (ai.x < 0) ai.x = 0;
@@ -182,7 +270,6 @@ function updateRace() {
     // Проверка ИИ на свой след
     for (let i = 0; i < ai.trail.length - 2; i++) {
         if (ai.trail[i].x === aiPX && ai.trail[i].y === aiPY) {
-            // ИИ врезался в свой след — он проигрывает
             raceState.win = true;
             raceState.active = false;
             showMessage('🎉 ИИ ВРЕЗАЛСЯ В СВОЙ СЛЕД! ВЫ ПОБЕДИЛИ!');
@@ -191,7 +278,7 @@ function updateRace() {
     }
     
     // ============================================================
-    // ===== ПРЕПЯТСТВИЯ (движение, столкновения) =====
+    // ===== ПРЕПЯТСТВИЯ =====
     // ============================================================
     for (let i = raceState.obstacles.length - 1; i >= 0; i--) {
         const obs = raceState.obstacles[i];
@@ -242,9 +329,7 @@ function updateRace() {
         }
     }
     
-    // ============================================================
     // ===== СПАВН ПРЕПЯТСТВИЙ =====
-    // ============================================================
     if (Math.random() < RACE_CONFIG.spawnRate) {
         const isPlayerSide = Math.random() < 0.5;
         let y;
@@ -301,7 +386,7 @@ function drawRace() {
         ctx.stroke();
     }
     
-    // ===== РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ =====
+    // ===== РАЗДЕЛИТЕЛЬ =====
     const midY = canvas.height / 2;
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 2;
@@ -371,7 +456,7 @@ function drawRace() {
     }
     ctx.shadowBlur = 0;
     
-    // ===== ИГРОК (поворот) =====
+    // ===== ИГРОК =====
     const px = Math.round(raceState.player.x) * CELL_SIZE + CELL_SIZE / 2;
     const py = Math.round(raceState.player.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
@@ -391,7 +476,7 @@ function drawRace() {
     ctx.fill();
     ctx.restore();
     
-    // ===== ИИ (поворот) =====
+    // ===== ИИ =====
     const ax = Math.round(raceState.ai.x) * CELL_SIZE + CELL_SIZE / 2;
     const ay = Math.round(raceState.ai.y) * CELL_SIZE + CELL_SIZE / 2;
     ctx.save();
