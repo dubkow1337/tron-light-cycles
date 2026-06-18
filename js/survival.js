@@ -3,26 +3,29 @@
 let survivalEnemies = [];
 let spawnTimer = 0;
 let lastSpawnTime = 0;
+let bossSpawnTimer = 0; // ← ТАЙМЕР ДЛЯ БОССА
 const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
 const MAX_ENEMIES = 20;
+const BOSS_SPAWN_INTERVAL = 15000; // ← 15 СЕКУНД
 
 function spawnSurvivalEnemies() {
     survivalEnemies = [];
     spawnTimer = 0;
     lastSpawnTime = Date.now();
+    bossSpawnTimer = 0; // ← СБРАСЫВАЕМ ТАЙМЕР БОССА
     
     // Первая волна — 3 врага
     for (let i = 0; i < 3; i++) {
         spawnSingleEnemy();
     }
     
-    // ===== БОСС ПОЯВЛЯЕТСЯ ЧЕРЕЗ 2 СЕКУНДЫ =====
+    // ===== БОСС ПОЯВЛЯЕТСЯ ЧЕРЕЗ 2 СЕКУНДЫ (ПЕРВЫЙ РАЗ) =====
     setTimeout(() => {
         if (typeof spawnBoss === 'function' && players[0] && players[0].alive) {
             spawnBoss();
             showMessage('⚠️ LIGHT RUNNER ПРИБЫВАЕТ!');
         }
-    }, 2000);
+    }, 10000);
 }
 
 function spawnSingleEnemy() {
@@ -93,6 +96,26 @@ function updateSurvival() {
         }
         const aliveCount = survivalEnemies.filter(e => e.alive).length;
         showMessage(`⚠️ НОВЫЙ ВРАГ! (${aliveCount} всего)`);
+    }
+    
+    // ===== ТАЙМЕР ДЛЯ БОССА (КАЖДЫЕ 15 СЕКУНД) =====
+    if (typeof boss !== 'undefined') {
+        bossSpawnTimer += 16; // примерно 16 мс за кадр
+        if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
+            bossSpawnTimer = 0;
+            // Проверяем, что босс мёртв или его нет
+            if (!boss || !boss.alive) {
+                if (typeof spawnBoss === 'function' && players[0] && players[0].alive) {
+                    spawnBoss();
+                    showMessage('⚠️ LIGHT RUNNER ВОЗВРАЩАЕТСЯ!');
+                }
+            }
+        }
+        
+        // Обновляем босса
+        if (typeof updateBoss === 'function') {
+            updateBoss();
+        }
     }
     
     // ===== КОМАНДНАЯ ЛОГИКА =====
@@ -266,23 +289,10 @@ function updateSurvival() {
     }
     
     survivalEnemies = survivalEnemies.filter(e => e.alive);
-    
-    // ===== УПРАВЛЕНИЕ БОССОМ =====
-    if (typeof boss !== 'undefined') {
-        if (bossSpawnTimer === undefined) {
-            bossSpawnTimer = 0;
-        }
-        bossSpawnTimer += 16;
-        if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
-            bossSpawnTimer = 0;
-            if (typeof spawnBoss === 'function') spawnBoss();
-        }
-        
-        if (typeof updateBoss === 'function') updateBoss();
-    }
 }
 
 function resetSurvivalTimer() {
     spawnTimer = 0;
     lastSpawnTime = Date.now();
+    bossSpawnTimer = 0;
 }
