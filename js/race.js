@@ -1,4 +1,4 @@
-// ========== РЕЖИМ "ГОНКИ" (ВЕРТИКАЛЬНАЯ СТЕНА НА ПУТИ К ФИНИШУ) ==========
+// ========== РЕЖИМ "ГОНКИ" (СМЕРТЕЛЬНЫЕ СТЕНЫ, УМНЫЙ ИИ) ==========
 
 let raceState = {
     active: false,
@@ -9,7 +9,7 @@ let raceState = {
     gameOver: false,
     win: false,
     finishX: 0,
-    wallX: 0,                  // ← координата X вертикальной стены
+    wallX: 0,
     countdown: 0,
     countdownActive: false,
     speed: 0.7,
@@ -25,7 +25,7 @@ const RACE_CONFIG = {
     aiStartX: 2,
     aiY: Math.floor(HEIGHT * 3 / 4),
     finishX: WIDTH - 4,
-    wallX: Math.floor(WIDTH / 2) - 2,  // ← стена примерно посередине
+    wallX: Math.floor(WIDTH / 2) - 2,
     obstacleSpeed: 1.5,
     speed: 0.7,
     spawnRate: 0.05,
@@ -111,33 +111,47 @@ function updateRace() {
     const wallX = raceState.wallX;
     const isRestricted = raceState.phase === 'restricted';
     
-    // ===== ДВИЖЕНИЕ ИГРОКА =====
+    // ============================================================
+    // ===== ДВИЖЕНИЕ ИГРОКА (с проверкой на смерть от стен) =====
+    // ============================================================
     let newX = player.x + player.dirX * speed;
     let newY = player.y + player.dirY * speed;
     
-    // ===== СТЕНА: запрет прохода вправо за wallX =====
-    if (isRestricted) {
-        // Если пытаемся пересечь стену (x становится >= wallX и dirX > 0)
-        if (player.dirX > 0 && newX >= wallX) {
-            newX = wallX - 0.5; // останавливаем прямо перед стеной
-        }
-        // Если пытаемся уйти влево от стены — разрешено
-        if (player.dirX < 0 && newX < 0) newX = 0;
+    // Проверка на выход за границы поля
+    if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
+        raceState.gameOver = true;
+        showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ГРАНИЦУ!');
+        return;
     }
+    
+    // Проверка на пересечение разделительной линии (если restricted)
+    if (isRestricted) {
+        // Игрок не должен пересекать середину поля (по Y)
+        const maxY = Math.floor(HEIGHT / 2) - 1;
+        if (newY > maxY) {
+            raceState.gameOver = true;
+            showMessage('💥 ВЫ ПЕРЕСЕКЛИ РАЗДЕЛИТЕЛЬ!');
+            return;
+        }
+        // Нельзя пересечь вертикальную стену
+        if (player.dirX > 0 && newX >= wallX) {
+            raceState.gameOver = true;
+            showMessage('💥 ВЫ ВРЕЗАЛИСЬ В СТЕНУ!');
+            return;
+        }
+        if (player.dirX < 0 && newX < 0) {
+            raceState.gameOver = true;
+            showMessage('💥 ВЫ ВРЕЗАЛИСЬ В ГРАНИЦУ!');
+            return;
+        }
+    } else {
+        // В unrestricted режиме только границы поля
+        // (уже проверено выше)
+    }
+    
+    // Применяем новую позицию игрока
     player.x = newX;
     player.y = newY;
-    
-    // ===== ОГРАНИЧЕНИЯ =====
-    if (isRestricted) {
-        const maxY = Math.floor(HEIGHT / 2) - 1;
-        if (player.y < 0) player.y = 0;
-        if (player.y > maxY) player.y = maxY;
-    } else {
-        if (player.y < 0) player.y = 0;
-        if (player.y >= HEIGHT) player.y = HEIGHT - 1;
-    }
-    if (player.x < 0) player.x = 0;
-    if (player.x >= WIDTH) player.x = WIDTH - 1;
     
     // След игрока
     const px = Math.round(player.x);
@@ -158,120 +172,140 @@ function updateRace() {
         }
     }
     
-    // ===== ДВИЖЕНИЕ ИИ (умный) =====
+    // ============================================================
+    // ===== УМНЫЙ ИИ (выбирает безопасное направление) =====
+    // ============================================================
     const aiX = Math.round(ai.x);
     const aiY = Math.round(ai.y);
     
-    // Проверяем препятствия перед ИИ на 3 шага вперёд
-    let obstacleAhead = false;
-    for (let step = 1; step <= 3; step++) {
-        const checkX = aiX + step;
-        const checkY = aiY;
-        for (let obs of raceState.obstacles) {
-            const ox = Math.floor(obs.x);
-            const oy = obs.y;
-            for (let dx = 0; dx < obs.size; dx++) {
-                for (let dy = 0; dy < obs.size; dy++) {
-                    if (ox + dx === checkX && oy + dy === checkY) {
-                        obstacleAhead = true;
-                        break;
-                    }
-                }
-                if (obstacleAhead) break;
-            }
-            if (obstacleAhead) break;
+    // Проверяем все 4 направления и выбираем лучшее
+    const directions = [
+        { dx: 1, dy: 0, label: 'right' },
+        { dx: 0, dy: -1, label: 'up' },
+        { dx: 0, dy: 1, label: 'down' },
+        { dx: -1, dy: 0, label: 'left' }
+    ];
+    
+    let bestDir = null;
+    let bestScore = -Infinity;
+    
+    for (let dir of directions) {
+        // Следующая позиция при этом направлении
+        let testX = ai.x + dir.dx * speed;
+        let testY = ai.y + dir.dy * speed;
+        
+        // Проверяем, не приведёт ли это к смерти
+        let safe = true;
+        
+        // Границы поля
+        if (testX < 0 || testX >= WIDTH || testY < 0 || testY >= HEIGHT) {
+            safe = false;
         }
-        if (obstacleAhead) break;
+        
+        // Разделитель (в restricted)
+        if (isRestricted) {
+            const minAIY = Math.floor(HEIGHT / 2) + 1;
+            if (testY < minAIY) safe = false;
+            // Вертикальная стена
+            if (dir.dx > 0 && testX >= wallX) safe = false;
+            if (dir.dx < 0 && testX < 0) safe = false;
+        }
+        
+        // Проверка на столкновение с препятствиями (на следующей позиции)
+        if (safe) {
+            for (let obs of raceState.obstacles) {
+                const ox = Math.floor(obs.x);
+                const oy = obs.y;
+                for (let dx = 0; dx < obs.size; dx++) {
+                    for (let dy = 0; dy < obs.size; dy++) {
+                        if (ox + dx === Math.round(testX) && oy + dy === Math.round(testY)) {
+                            safe = false;
+                            break;
+                        }
+                    }
+                    if (!safe) break;
+                }
+                if (!safe) break;
+            }
+        }
+        
+        // Если безопасно, считаем оценку (приоритет — движение вправо к финишу)
+        if (safe) {
+            // Бонус за движение вправо
+            let score = dir.dx * 10;
+            // Бонус за движение вверх/вниз для манёвра
+            if (dir.dy !== 0) score += 2;
+            // Штраф за движение влево
+            if (dir.dx < 0) score -= 5;
+            // Случайный фактор для разнообразия
+            score += Math.random() * 1.5;
+            
+            // Дополнительно: если есть препятствие впереди, предпочитаем уклоняться
+            // (уже учтено через проверку безопасности)
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestDir = dir;
+            }
+        }
     }
     
-    // Также проверяем, не упрётся ли ИИ в стену
-    const aiWillHitWall = isRestricted && (ai.dirX > 0 && ai.x + speed >= wallX);
-    
-    if (obstacleAhead || aiWillHitWall) {
-        // Найти свободное направление (вверх или вниз)
-        let upFree = false, downFree = false;
-        const upY = aiY - 1;
-        const downY = aiY + 1;
-        const minAIY = isRestricted ? Math.floor(HEIGHT / 2) + 1 : 0;
-        const maxAIY = isRestricted ? HEIGHT - 1 : HEIGHT - 1;
-        
-        if (upY >= minAIY) {
-            let blocked = false;
-            for (let obs of raceState.obstacles) {
-                const ox = Math.floor(obs.x);
-                const oy = obs.y;
-                for (let dx = 0; dx < obs.size; dx++) {
-                    for (let dy = 0; dy < obs.size; dy++) {
-                        if (ox + dx === aiX && oy + dy === upY) blocked = true;
-                    }
-                }
-            }
-            if (!blocked) upFree = true;
-        }
-        if (downY < maxAIY) {
-            let blocked = false;
-            for (let obs of raceState.obstacles) {
-                const ox = Math.floor(obs.x);
-                const oy = obs.y;
-                for (let dx = 0; dx < obs.size; dx++) {
-                    for (let dy = 0; dy < obs.size; dy++) {
-                        if (ox + dx === aiX && oy + dy === downY) blocked = true;
-                    }
-                }
-            }
-            if (!blocked) downFree = true;
-        }
-        
-        if (upFree && downFree) {
-            ai.dirY = (Math.random() < 0.5) ? -1 : 1;
-        } else if (upFree) {
-            ai.dirY = -1;
-        } else if (downFree) {
-            ai.dirY = 1;
-        } else {
-            ai.dirY = 0;
-        }
-        ai.dirX = 0;
+    // Если нашли безопасное направление — применяем его
+    if (bestDir) {
+        ai.dirX = bestDir.dx;
+        ai.dirY = bestDir.dy;
     } else {
-        if (Math.random() < 0.01) {
-            ai.dirY = (Math.random() < 0.5) ? 1 : -1;
-        } else if (Math.random() < 0.02) {
-            ai.dirY = 0;
-        }
-        ai.dirX = 1;
+        // Если нет безопасного направления (заблокирован), остаёмся на месте
+        // (это крайний случай, лучше попытаться повернуть обратно)
+        ai.dirX = -ai.dirX || 1;
+        ai.dirY = 0;
     }
     
-    // Движение ИИ с учётом стены
+    // Движение ИИ с проверкой на смерть
     let aiNewX = ai.x + ai.dirX * speed;
     let aiNewY = ai.y + ai.dirY * speed;
     
-    if (isRestricted) {
-        if (ai.dirX > 0 && aiNewX >= wallX) {
-            aiNewX = wallX - 0.5;
-        }
-        if (ai.dirX < 0 && aiNewX < 0) aiNewX = 0;
-    }
-    ai.x = aiNewX;
-    ai.y = aiNewY;
-    
-    // Ограничения для ИИ
-    if (isRestricted) {
-        const minAIY = Math.floor(HEIGHT / 2) + 1;
-        if (ai.y < minAIY) ai.y = minAIY;
-        if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
+    // Проверка на смерть ИИ (аналогично игроку)
+    if (aiNewX < 0 || aiNewX >= WIDTH || aiNewY < 0 || aiNewY >= HEIGHT) {
+        // ИИ погибает
+        raceState.obstacles = []; // просто удаляем препятствия, но можно показать сообщение
+        showMessage('🤖 ИИ РАЗБИЛСЯ!');
+        // ИИ умирает, но игра продолжается (можно сделать проигрыш, если хотим)
+        // Для упрощения просто удалим ИИ с поля
+        raceState.ai.alive = false;
+        // но мы не используем alive, поэтому просто остановим его движение
+        // чтобы он не двигался дальше
+        ai.dirX = 0;
+        ai.dirY = 0;
+        // Игрок может победить, если ИИ мёртв?
+        // Пока просто покажем сообщение и продолжим
     } else {
-        if (ai.y < 0) ai.y = 0;
-        if (ai.y >= HEIGHT) ai.y = HEIGHT - 1;
+        // Проверка на стену и разделитель
+        if (isRestricted) {
+            const minAIY = Math.floor(HEIGHT / 2) + 1;
+            if (aiNewY < minAIY) {
+                // ИИ пересек разделитель — смерть
+                showMessage('🤖 ИИ ПЕРЕСЕК РАЗДЕЛИТЕЛЬ!');
+                ai.dirX = 0; ai.dirY = 0;
+                // можно объявить поражение игрока? пока просто остановим ИИ
+            }
+            if (ai.dirX > 0 && aiNewX >= wallX) {
+                showMessage('🤖 ИИ ВРЕЗАЛСЯ В СТЕНУ!');
+                ai.dirX = 0; ai.dirY = 0;
+            }
+        }
+        ai.x = aiNewX;
+        ai.y = aiNewY;
     }
-    if (ai.x < 0) ai.x = 0;
-    if (ai.x >= WIDTH) ai.x = WIDTH - 1;
     
-    // След ИИ
-    if (ai.trail.length === 0 || 
-        ai.trail[ai.trail.length-1].x !== Math.round(ai.x) || 
-        ai.trail[ai.trail.length-1].y !== Math.round(ai.y)) {
-        ai.trail.push({ x: Math.round(ai.x), y: Math.round(ai.y) });
-        if (ai.trail.length > 30) ai.trail.shift();
+    // След ИИ (если жив)
+    if (ai.dirX !== 0 || ai.dirY !== 0) {
+        if (ai.trail.length === 0 || 
+            ai.trail[ai.trail.length-1].x !== Math.round(ai.x) || 
+            ai.trail[ai.trail.length-1].y !== Math.round(ai.y)) {
+            ai.trail.push({ x: Math.round(ai.x), y: Math.round(ai.y) });
+            if (ai.trail.length > 30) ai.trail.shift();
+        }
     }
     
     // ===== ДВИЖЕНИЕ ПРЕПЯТСТВИЙ =====
@@ -298,23 +332,27 @@ function updateRace() {
             return;
         }
         
-        // Столкновение с ИИ
-        let hitAI = false;
-        const aiX2 = Math.round(ai.x);
-        const aiY2 = Math.round(ai.y);
-        for (let dx = 0; dx < obs.size; dx++) {
-            for (let dy = 0; dy < obs.size; dy++) {
-                if (Math.floor(obs.x) + dx === aiX2 && obs.y + dy === aiY2) {
-                    hitAI = true;
-                    break;
+        // Столкновение с ИИ (если он ещё активен)
+        if (ai.dirX !== 0 || ai.dirY !== 0) {
+            let hitAI = false;
+            const aiX2 = Math.round(ai.x);
+            const aiY2 = Math.round(ai.y);
+            for (let dx = 0; dx < obs.size; dx++) {
+                for (let dy = 0; dy < obs.size; dy++) {
+                    if (Math.floor(obs.x) + dx === aiX2 && obs.y + dy === aiY2) {
+                        hitAI = true;
+                        break;
+                    }
                 }
+                if (hitAI) break;
             }
-            if (hitAI) break;
-        }
-        if (hitAI) {
-            raceState.obstacles.splice(i, 1);
-            showMessage('🤖 ИИ ВРЕЗАЛСЯ В ПРЕПЯТСТВИЕ!');
-            continue;
+            if (hitAI) {
+                raceState.obstacles.splice(i, 1);
+                showMessage('🤖 ИИ ВРЕЗАЛСЯ В ПРЕПЯТСТВИЕ!');
+                // Останавливаем ИИ
+                ai.dirX = 0; ai.dirY = 0;
+                continue;
+            }
         }
         
         if (obs.x < 0) {
@@ -366,10 +404,12 @@ function updateRace() {
             showMessage('🏆 ВЫ ПОБЕДИЛИ! ФИНИШ!');
             return;
         }
-        if (Math.round(ai.x) >= raceState.finishX) {
-            raceState.gameOver = true;
-            showMessage('💀 ИИ ДОШЁЛ ДО ФИНИША РАНЬШЕ!');
-            return;
+        if (ai.dirX !== 0 || ai.dirY !== 0) {
+            if (Math.round(ai.x) >= raceState.finishX) {
+                raceState.gameOver = true;
+                showMessage('💀 ИИ ДОШЁЛ ДО ФИНИША РАНЬШЕ!');
+                return;
+            }
         }
     }
 }
@@ -411,7 +451,7 @@ function drawRace() {
         ctx.stroke();
     }
     
-    // ===== ПОСТОЯННАЯ СИНЯЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ (горизонтальная) =====
+    // ===== ГОРИЗОНТАЛЬНАЯ РАЗДЕЛИТЕЛЬНАЯ ЛИНИЯ (всегда) =====
     const midY = canvas.height / 2;
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 2;
@@ -425,7 +465,7 @@ function drawRace() {
     ctx.setLineDash([]);
     ctx.shadowBlur = 0;
     
-    // ===== ВЕРТИКАЛЬНАЯ КРАСНАЯ СТЕНА (блокирует проход) =====
+    // ===== ВЕРТИКАЛЬНАЯ КРАСНАЯ СТЕНА =====
     if (raceState.phase === 'restricted') {
         const wallX = raceState.wallX * CELL_SIZE;
         ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
@@ -433,7 +473,7 @@ function drawRace() {
         ctx.shadowColor = '#ff0000';
         ctx.fillRect(wallX - 4, 0, 8, canvas.height);
         ctx.shadowBlur = 0;
-        // Рисуем мигающие красные огни
+        // Мигающие огни
         for (let y = 0; y < canvas.height; y += 30) {
             ctx.fillStyle = (Math.floor(Date.now() / 300) % 2 === 0) ? '#ff0000' : '#ff6666';
             ctx.shadowBlur = 15;
@@ -445,7 +485,7 @@ function drawRace() {
         ctx.shadowBlur = 0;
     }
     
-    // ===== ФИНИШНАЯ ПОЛОСА =====
+    // ===== ФИНИШ =====
     if (raceState.phase === 'unrestricted') {
         const fx = raceState.finishX * CELL_SIZE;
         for (let y = 0; y < canvas.height; y += 10) {
@@ -530,24 +570,26 @@ function drawRace() {
     ctx.restore();
     
     // ===== ИИ =====
-    const ax = Math.round(raceState.ai.x) * CELL_SIZE + CELL_SIZE / 2;
-    const ay = Math.round(raceState.ai.y) * CELL_SIZE + CELL_SIZE / 2;
-    ctx.save();
-    ctx.translate(ax, ay);
-    if (raceState.ai.dirX === 1) ctx.rotate(0);
-    else if (raceState.ai.dirX === -1) ctx.rotate(Math.PI);
-    else if (raceState.ai.dirY === -1) ctx.rotate(-Math.PI / 2);
-    else if (raceState.ai.dirY === 1) ctx.rotate(Math.PI / 2);
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#ff3300';
-    ctx.fillStyle = '#ff3300';
-    ctx.beginPath();
-    ctx.moveTo(10, 0);
-    ctx.lineTo(-5, -6);
-    ctx.lineTo(-5, 6);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+    if (raceState.ai.dirX !== 0 || raceState.ai.dirY !== 0) {
+        const ax = Math.round(raceState.ai.x) * CELL_SIZE + CELL_SIZE / 2;
+        const ay = Math.round(raceState.ai.y) * CELL_SIZE + CELL_SIZE / 2;
+        ctx.save();
+        ctx.translate(ax, ay);
+        if (raceState.ai.dirX === 1) ctx.rotate(0);
+        else if (raceState.ai.dirX === -1) ctx.rotate(Math.PI);
+        else if (raceState.ai.dirY === -1) ctx.rotate(-Math.PI / 2);
+        else if (raceState.ai.dirY === 1) ctx.rotate(Math.PI / 2);
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#ff3300';
+        ctx.fillStyle = '#ff3300';
+        ctx.beginPath();
+        ctx.moveTo(10, 0);
+        ctx.lineTo(-5, -6);
+        ctx.lineTo(-5, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
     
     ctx.shadowBlur = 0;
     
@@ -557,7 +599,6 @@ function drawRace() {
         ctx.fillStyle = '#ffaa00';
         ctx.font = 'bold 20px Orbitron';
         ctx.fillText(`⏳ ${Math.ceil(remaining)}с`, 20, 40);
-        // Подпись стены
         ctx.fillStyle = '#ff3333';
         ctx.font = 'bold 16px Orbitron';
         ctx.fillText('🚧 СТЕНА', raceState.wallX * CELL_SIZE - 40, 30);
