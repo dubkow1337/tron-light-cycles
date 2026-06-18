@@ -5,7 +5,7 @@ let matchMode = 'classic';
 let paused = false;
 let tournamentActive = false;
 let tournamentScore = [0, 0];
-let tournamentTarget = 3;
+let tournamentTarget = 5;
 
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
