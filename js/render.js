@@ -2,6 +2,7 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
+// boss объявлен в boss.js — НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -48,6 +49,10 @@ function updateParticles() {
             i--;
         }
     }
+    // Салют
+    if (typeof updateFireworks === 'function') {
+        updateFireworks();
+    }
 }
 
 function drawParticles() {
@@ -57,6 +62,10 @@ function drawParticles() {
         ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
     ctx.globalAlpha = 1;
+    // Салют
+    if (typeof drawFireworks === 'function') {
+        drawFireworks();
+    }
 }
 
 function draw() {
@@ -186,6 +195,7 @@ function draw() {
         }
     }
     
+    // Рисуем салют через drawParticles (который вызывает drawFireworks)
     drawParticles();
     
     if (crashEffect.active) {
@@ -260,4 +270,90 @@ function draw() {
     }
     
     ctx.shadowBlur = 0;
+}
+
+// ========== САЛЮТ ==========
+
+let fireworkParticles = [];
+let fireworkActive = false;
+
+function startFireworks(color, count = 6) {
+    try {
+        if (!canvas || !ctx) return;
+        fireworkParticles = [];
+        fireworkActive = true;
+        const colors = color === '#00ffff' ? ['#00ffff', '#0088ff', '#00ffcc'] : ['#ffaa00', '#ff6600', '#ffcc44'];
+        
+        for (let burst = 0; burst < count; burst++) {
+            setTimeout(() => {
+                try {
+                    const x1 = 50 + Math.random() * 100;
+                    const y1 = 50 + Math.random() * (canvas.height - 100);
+                    createFireworkBurst(x1, y1, colors);
+                    const x2 = canvas.width - 50 - Math.random() * 100;
+                    const y2 = 50 + Math.random() * (canvas.height - 100);
+                    createFireworkBurst(x2, y2, colors);
+                } catch(e) {}
+            }, burst * 300);
+        }
+        
+        setTimeout(() => {
+            fireworkActive = false;
+            fireworkParticles = [];
+        }, 5000);
+    } catch(e) {
+        console.warn('Салют не удался:', e);
+    }
+}
+
+function createFireworkBurst(x, y, colors) {
+    const count = 40 + Math.floor(Math.random() * 30);
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 2 + Math.random() * 3;
+        fireworkParticles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            decay: 0.005 + Math.random() * 0.01,
+            color: color,
+            size: size
+        });
+    }
+}
+
+function updateFireworks() {
+    if (!fireworkActive) return;
+    try {
+        for (let i = fireworkParticles.length - 1; i >= 0; i--) {
+            const p = fireworkParticles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.03;
+            p.vx *= 0.99;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                fireworkParticles.splice(i, 1);
+            }
+        }
+    } catch(e) {}
+}
+
+function drawFireworks() {
+    if (!fireworkActive || fireworkParticles.length === 0) return;
+    try {
+        for (const p of fireworkParticles) {
+            ctx.globalAlpha = p.life;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = p.color;
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+    } catch(e) {}
 }
