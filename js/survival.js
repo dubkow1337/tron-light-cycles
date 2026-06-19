@@ -3,13 +3,20 @@
 let survivalEnemies = [];
 let spawnTimer = 0;
 let lastSpawnTime = 0;
+let bossSpawnTimer = 0;
 const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
 const MAX_ENEMIES = 20;
 
 function spawnSurvivalEnemies() {
+    // ===== СБРАСЫВАЕМ БОССА ПРИ СТАРТЕ =====
+    if (typeof resetBoss === 'function') {
+        resetBoss();
+    }
+    
     survivalEnemies = [];
     spawnTimer = 0;
     lastSpawnTime = Date.now();
+    bossSpawnTimer = 0;
     
     // Первая волна — 3 врага
     for (let i = 0; i < 3; i++) {
@@ -80,6 +87,10 @@ function updateSurvival() {
     const player = players[0];
     if (!player.alive) {
         survivalEnemies = [];
+        // Если игрок умер — сбрасываем босса
+        if (typeof resetBoss === 'function') {
+            resetBoss();
+        }
         return;
     }
     
@@ -97,19 +108,16 @@ function updateSurvival() {
     
     // ===== БОСС: КАЖДЫЕ 15 СЕКУНД, ШАНС 30% НА 2 БОССОВ =====
     if (typeof boss !== 'undefined' && typeof spawnBoss === 'function') {
-        if (bossSpawnTimer === undefined) bossSpawnTimer = 0;
-        bossSpawnTimer += 16; // примерно 16 мс за кадр
+        bossSpawnTimer += 16;
         
         if (bossSpawnTimer >= 15000) { // 15 секунд
             bossSpawnTimer = 0;
             
             // Проверяем, что босс мёртв или его нет
             if (!boss || !boss.alive) {
-                // Случайно: 1 или 2 босса (30% шанс на 2)
                 const bossCount = Math.random() < 0.3 ? 2 : 1;
                 
                 for (let i = 0; i < bossCount; i++) {
-                    // Небольшая задержка между спавнами, чтобы они не накладывались
                     setTimeout(() => {
                         if (players[0] && players[0].alive && typeof spawnBoss === 'function') {
                             spawnBoss();
@@ -307,4 +315,8 @@ function resetSurvivalTimer() {
     spawnTimer = 0;
     lastSpawnTime = Date.now();
     bossSpawnTimer = 0;
+    // ===== СБРАСЫВАЕМ БОССА ПРИ ПЕРЕЗАПУСКЕ =====
+    if (typeof resetBoss === 'function') {
+        resetBoss();
+    }
 }
