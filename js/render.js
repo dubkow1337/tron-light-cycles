@@ -8,8 +8,8 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Единые настройки следа
-const TRAIL_LENGTH = 30;      // ← длина следа (количество точек)
-const TRAIL_FADE = true;      // ← затухание включено
+const TRAIL_LENGTH = 30;
+const TRAIL_FADE = true;
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -73,18 +73,15 @@ function drawTrail(trail, color, shadowColor, lineWidth) {
     
     const len = trail.length;
     const maxLen = TRAIL_LENGTH;
-    
-    // Обрезаем след до единой длины
     const start = Math.max(0, len - maxLen);
     const points = trail.slice(start);
     const pointsLen = points.length;
     
     if (pointsLen < 2) return;
     
-    // Рисуем сегментами с прозрачностью
     for (let i = 0; i < pointsLen - 1; i++) {
-        const progress = i / pointsLen; // 0 — начало (старый), 1 — конец (свежий)
-        const alpha = TRAIL_FADE ? Math.pow(progress, 0.6) : 1; // затухание к концу
+        const progress = i / pointsLen;
+        const alpha = TRAIL_FADE ? Math.pow(progress, 0.6) : 1;
         
         ctx.beginPath();
         ctx.lineWidth = lineWidth || 3;
@@ -143,7 +140,6 @@ function draw() {
         for (let e of survivalEnemies) {
             drawTrail(e.trail, e.trailColor, e.trailColor, 3);
         }
-        // Отрисовка врагов
         for (let e of survivalEnemies) {
             const cx = e.x * CELL_SIZE + CELL_SIZE / 2;
             const cy = e.y * CELL_SIZE + CELL_SIZE / 2;
@@ -203,8 +199,15 @@ function draw() {
         }
     }
     
+    // ===== БОНУСЫ =====
+    if (typeof drawBonuses === 'function') {
+        drawBonuses();
+    }
+    
+    // ===== ЧАСТИЦЫ =====
     drawParticles();
     
+    // ===== ЭФФЕКТ СТОЛКНОВЕНИЯ =====
     if (crashEffect.active) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ffffff';
@@ -212,10 +215,6 @@ function draw() {
         ctx.fillRect(crashEffect.x * CELL_SIZE, crashEffect.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         crashEffect.timer--;
         if (crashEffect.timer <= 0) crashEffect.active = false;
-    }
-    
-    if (typeof drawBonuses === 'function') {
-        drawBonuses();
     }
     
     // ===== МОТОЦИКЛЫ ИГРОКОВ =====
@@ -252,6 +251,7 @@ function draw() {
         }
     }
     
+    // ===== ОБРАТНЫЙ ОТСЧЁТ =====
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
@@ -269,6 +269,7 @@ function draw() {
         }
     }
     
+    // ===== ПАУЗА =====
     if (paused && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
         ctx.shadowBlur = 10;
@@ -280,7 +281,8 @@ function draw() {
     ctx.shadowBlur = 0;
 }
 
-// ===== САЛЮТ =====
+// ========== САЛЮТ ==========
+
 let fireworkParticles = [];
 let fireworkActive = false;
 
