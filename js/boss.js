@@ -167,7 +167,7 @@ function updateBoss() {
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
-        if (boss.trail.length > 100) boss.trail.shift();
+        if (boss.trail.length > 50) boss.trail.shift();
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ ИГРОКА СО СЛЕДОМ БОССА =====
         for (let t = 0; t < boss.trail.length - 1; t++) {
