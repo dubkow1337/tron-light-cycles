@@ -2,14 +2,12 @@
 
 let gameActive = true;
 let gameLoop = null;
-let countdownInterval = null; // ← глобальный таймер обратного отсчёта
+let countdownInterval = null;
 let countdownActive = false;
 let countdownValue = 3;
 let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
-
-// spawnTimer объявлен в survival.js
 
 function showVictory(name) {
     const overlay = document.getElementById('victoryOverlay');
@@ -68,26 +66,11 @@ function updateGame() {
         return;
     }
     
-    // ============================================================
-    // ===== БОНУСЫ: ПРОВЕРКА ЭФФЕКТОВ =====
-    // ============================================================
-    let speedMultiplier = 1;
-    let shieldActive = false;
-    
-    if (typeof bonusEffects !== 'undefined') {
-        if (bonusEffects.speed && bonusEffects.speed.active) {
-            speedMultiplier = 1.5;
-        }
-        if (bonusEffects.shield && bonusEffects.shield.active) {
-            shieldActive = true;
-        }
-    }
-    
     // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
-        p.x += p.dirX * speedMultiplier;
-        p.y += p.dirY * speedMultiplier;
+        p.x += p.dirX;
+        p.y += p.dirY;
         p.trail.push({ x: p.x, y: p.y });
         if (p.trail.length > 30) p.trail.shift();
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
@@ -103,24 +86,6 @@ function updateGame() {
         if (typeof aiMove === 'function') aiMove();
     }
     
-    // ===== БОНУСЫ (ОБНОВЛЕНИЕ И СБОР) =====
-    if (typeof updateBonuses === 'function') {
-        updateBonuses();
-    }
-    
-    if (typeof bonuses !== 'undefined') {
-        for (let i = 0; i < bonuses.length; i++) {
-            const b = bonuses[i];
-            if (players[0].alive && players[0].x === b.x && players[0].y === b.y) {
-                if (typeof collectBonus === 'function') {
-                    collectBonus(b, players[0]);
-                }
-                bonuses.splice(i, 1);
-                i--;
-            }
-        }
-    }
-    
     if (typeof updateParticles === 'function') updateParticles();
     
     // ============================================================
@@ -128,11 +93,6 @@ function updateGame() {
     // ============================================================
     for (let p of players) {
         if (!p.alive) continue;
-        
-        // ===== ЩИТ (полная неуязвимость) =====
-        if (shieldActive && p === players[0]) {
-            continue;
-        }
         
         // ===== УРОН БОТУ ОТ ЛИНИЙ ИГРОКА (VS AI) =====
         if (p === players[1] && opponentType === 'ai' && players[1].alive) {
@@ -208,7 +168,7 @@ function updateGame() {
         if (!p.alive) continue;
         
         // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
-        if (typeof survivalEnemies !== 'undefined') {
+        if (matchMode === 'survival' && typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
                 if (!e.alive) continue;
                 for (let i = 0; i < e.trail.length - 1; i++) {
@@ -231,8 +191,8 @@ function updateGame() {
         }
         if (!p.alive) continue;
         
-        // ===== БОСС =====
-        if (typeof boss !== 'undefined' && boss && boss.alive) {
+        // ===== БОСС (ТОЛЬКО В ВЫЖИВАНИИ) =====
+        if (matchMode === 'survival' && typeof boss !== 'undefined' && boss && boss.alive) {
             for (let dx = 0; dx < boss.size; dx++) {
                 for (let dy = 0; dy < boss.size; dy++) {
                     const bx = boss.x + dx;
@@ -286,7 +246,6 @@ function updateGame() {
 function initGame() {
     if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
     if (typeof spawnTimer !== 'undefined') spawnTimer = 0;
-    if (typeof resetBonuses === 'function') resetBonuses();
     if (typeof resetPlayers === 'function') resetPlayers();
     
     if (matchMode === 'survival') {
@@ -304,7 +263,6 @@ function initGame() {
     updateUI();
     if (typeof draw === 'function') draw();
     
-    // Очищаем старый таймер обратного отсчёта, если есть
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
