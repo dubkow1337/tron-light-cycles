@@ -5,7 +5,7 @@ let matchMode = 'classic';
 let paused = false;
 let tournamentActive = false;
 let tournamentScore = [0, 0];
-let tournamentTarget = 5;
+let tournamentTarget = 3;
 
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -37,7 +37,6 @@ function setupEventListeners() {
     // ===== ГРУППА 1: ПРОТИВНИК =====
     const btn2p = document.getElementById('menuOpponent2p');
     const btnAI = document.getElementById('menuOpponentAI');
-    const btnSurvival = document.getElementById('menuOpponentSurvival');
     
     if (btn2p) {
         btn2p.addEventListener('click', () => {
@@ -53,17 +52,11 @@ function setupEventListeners() {
             showMessage('Противник: VS AI');
         });
     }
-    if (btnSurvival) {
-        btnSurvival.addEventListener('click', () => {
-            opponentType = 'survival';
-            setMenuActive('opponent', 'menuOpponentSurvival');
-            showMessage('Противник: ВЫЖИВАНИЕ');
-        });
-    }
     
     // ===== ГРУППА 2: РЕЖИМ МАТЧА =====
     const btnClassic = document.getElementById('menuMatchClassic');
     const btnTournament = document.getElementById('menuMatchTournament');
+    const btnSurvival = document.getElementById('menuMatchSurvival');
     const btnRace = document.getElementById('menuMatchRace');
     
     if (btnClassic) {
@@ -83,6 +76,14 @@ function setupEventListeners() {
             showMessage('Режим: ТУРНИР до 3 побед');
         });
     }
+    if (btnSurvival) {
+        btnSurvival.addEventListener('click', () => {
+            matchMode = 'survival';
+            setMenuActive('match', 'menuMatchSurvival');
+            tournamentActive = false;
+            showMessage('Режим: ВЫЖИВАНИЕ');
+        });
+    }
     if (btnRace) {
         btnRace.addEventListener('click', () => {
             matchMode = 'race';
@@ -97,14 +98,12 @@ function setupEventListeners() {
     if (playBtn) {
         playBtn.addEventListener('click', () => {
             if (matchMode === 'race') {
-                // Запускаем режим гонок
                 if (typeof startRace === 'function') {
                     startRace();
                 } else {
                     console.error('Функция startRace не найдена!');
                 }
             } else {
-                // Обычный запуск
                 if (typeof updateUI === 'function') updateUI();
                 showScreen('gameScreen');
                 if (typeof resetGame === 'function') resetGame();
@@ -130,13 +129,6 @@ function setupEventListeners() {
             }
             if (typeof gameActive !== 'undefined') gameActive = false;
             paused = false;
-            
-            // Сброс режима гонок
-            if (typeof raceState !== 'undefined') {
-                raceState.active = false;
-                raceState.gameOver = false;
-                raceState.win = false;
-            }
             
             if (typeof survivalEnemies !== 'undefined') {
                 survivalEnemies = [];
@@ -173,7 +165,6 @@ function setupEventListeners() {
             const gameScreen = document.getElementById('gameScreen');
             if (gameScreen && gameScreen.classList.contains('active')) {
                 e.preventDefault();
-                // В режиме гонок ESC не ставит паузу
                 if (matchMode === 'race') return;
                 if (typeof gameActive !== 'undefined' && gameActive && !countdownActive) {
                     paused = !paused;
@@ -186,18 +177,17 @@ function setupEventListeners() {
         const gameScreen = document.getElementById('gameScreen');
         if (!gameScreen || !gameScreen.classList.contains('active')) return;
         
-        // ===== УПРАВЛЕНИЕ В РЕЖИМЕ ГОНКИ =====
-if (matchMode === 'race') {
-    if (typeof raceState !== 'undefined' && raceState.active && !raceState.gameOver) {
-        const p = raceState.player;
-        // Меняем направление, а не координаты
-        if (e.key === 'ArrowUp' && p.dirY !== 1) { p.dirY = -1; p.dirX = 0; }
-        else if (e.key === 'ArrowDown' && p.dirY !== -1) { p.dirY = 1; p.dirX = 0; }
-        else if (e.key === 'ArrowLeft' && p.dirX !== 1) { p.dirX = -1; p.dirY = 0; }
-        else if (e.key === 'ArrowRight' && p.dirX !== -1) { p.dirX = 1; p.dirY = 0; }
-    }
-    return;
-}
+        // Если режим гонок — управление через race.js
+        if (matchMode === 'race') {
+            if (typeof raceState !== 'undefined' && raceState.active && !raceState.gameOver) {
+                const p = raceState.player;
+                if (e.key === 'ArrowUp' && p.dirY !== 1) { p.dirY = -1; p.dirX = 0; }
+                else if (e.key === 'ArrowDown' && p.dirY !== -1) { p.dirY = 1; p.dirX = 0; }
+                else if (e.key === 'ArrowLeft' && p.dirX !== 1) { p.dirX = -1; p.dirY = 0; }
+                else if (e.key === 'ArrowRight' && p.dirX !== -1) { p.dirX = 1; p.dirY = 0; }
+            }
+            return;
+        }
         
         // Обычное управление для 2p и AI
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
@@ -250,7 +240,7 @@ function updateUI() {
     }
     
     if (p1Score) {
-        if (opponentType === 'survival') {
+        if (matchMode === 'survival') {
             p1Score.innerText = currentSteps || 0;
         } else {
             p1Score.innerText = matchMode === 'tournament' ? tournamentScore[0] : players[0].score;
@@ -258,7 +248,7 @@ function updateUI() {
     }
     
     if (p2Score) {
-        if (opponentType === 'survival') {
+        if (matchMode === 'survival') {
             p2Score.innerText = survivalEnemies.length;
         } else {
             p2Score.innerText = matchMode === 'tournament' ? tournamentScore[1] : players[1].score;
