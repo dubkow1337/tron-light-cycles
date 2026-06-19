@@ -58,7 +58,8 @@ function spawnBoss() {
         trailOffsetX: Math.floor(BOSS_SIZE / 2),
         trailOffsetY: Math.floor(BOSS_SIZE / 2),
         lastDirection: { dx: dirX, dy: dirY },
-        stuckCounter: 0
+        invincible: false,
+        invincibleTimer: 0
     };
     
     const startX = boss.x + boss.trailOffsetX;
@@ -84,7 +85,20 @@ function updateBoss() {
     }
     
     // ============================================================
-    // ===== СТОЛКНОВЕНИЕ БОССА С ИГРОКОМ (ОТТАЛКИВАНИЕ) =====
+    // ===== НЕУЯЗВИМОСТЬ ПОСЛЕ СТОЛКНОВЕНИЯ =====
+    // ============================================================
+    if (boss.invincible) {
+        boss.invincibleTimer--;
+        if (boss.invincibleTimer <= 0) {
+            boss.invincible = false;
+            showMessage('🛡️ LIGHT RUNNER СНОВА УЯЗВИМ!');
+        }
+        // В неуязвимости босс не получает урон от линий
+        // Но всё равно двигается
+    }
+    
+    // ============================================================
+    // ===== СТОЛКНОВЕНИЕ БОССА С ИГРОКОМ =====
     // ============================================================
     let hitPlayer = false;
     for (let dx = 0; dx < boss.size; dx++) {
@@ -110,44 +124,46 @@ function updateBoss() {
     }
     
     // ============================================================
-    // ===== УРОН БОССУ ОТ ЛИНИЙ ИГРОКА =====
+    // ===== УРОН БОССУ ОТ ЛИНИЙ ИГРОКА (ТОЛЬКО ЕСЛИ НЕ НЕУЯЗВИМ) =====
     // ============================================================
-    const playerTrail = player.trail || [];
-    for (let t = 0; t < playerTrail.length - 1; t++) {
-        const seg = playerTrail[t];
-        for (let dx = 0; dx < boss.size; dx++) {
-            for (let dy = 0; dy < boss.size; dy++) {
-                const bx = boss.x + dx;
-                const by = boss.y + dy;
-                if (bx === seg.x && by === seg.y) {
-                    boss.health--;
-                    if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
-                    
-                    if (boss.health <= 0) {
-                        boss.alive = false;
-                        for (let i = 0; i < 5; i++) {
-                            setTimeout(() => {
-                                if (typeof explode === 'function') {
-                                    explode(
-                                        boss.x + (Math.random() - 0.5) * 5,
-                                        boss.y + (Math.random() - 0.5) * 5,
-                                        '#ff3300'
-                                    );
-                                }
-                            }, i * 100);
+    if (!boss.invincible) {
+        const playerTrail = player.trail || [];
+        for (let t = 0; t < playerTrail.length - 1; t++) {
+            const seg = playerTrail[t];
+            for (let dx = 0; dx < boss.size; dx++) {
+                for (let dy = 0; dy < boss.size; dy++) {
+                    const bx = boss.x + dx;
+                    const by = boss.y + dy;
+                    if (bx === seg.x && by === seg.y) {
+                        boss.health--;
+                        if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
+                        
+                        if (boss.health <= 0) {
+                            boss.alive = false;
+                            for (let i = 0; i < 5; i++) {
+                                setTimeout(() => {
+                                    if (typeof explode === 'function') {
+                                        explode(
+                                            boss.x + (Math.random() - 0.5) * 5,
+                                            boss.y + (Math.random() - 0.5) * 5,
+                                            '#ff3300'
+                                        );
+                                    }
+                                }, i * 100);
+                            }
+                            showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
+                            currentSteps += 10;
+                            boss = null;
+                            return;
+                        } else {
+                            showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
+                            // Отталкиваем босса от следа
+                            boss.dirX = -boss.dirX || 1;
+                            boss.dirY = -boss.dirY || 1;
+                            boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
                         }
-                        showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
-                        currentSteps += 10;
-                        boss = null;
                         return;
-                    } else {
-                        showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
-                        // Отталкиваем босса от следа
-                        boss.dirX = -boss.dirX || 1;
-                        boss.dirY = -boss.dirY || 1;
-                        boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
                     }
-                    return;
                 }
             }
         }
@@ -163,25 +179,17 @@ function updateBoss() {
                 const bx = boss.x + dx;
                 const by = boss.y + dy;
                 if (bx === seg.x && by === seg.y) {
-                    // Босс наехал на свой след — разворачиваемся
                     boss.dirX = -boss.dirX || 1;
                     boss.dirY = -boss.dirY || 1;
                     boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
-                    boss.stuckCounter++;
-                    if (boss.stuckCounter > 3) {
-                        boss.dirX = 0;
-                        boss.dirY = (Math.random() < 0.5) ? 1 : -1;
-                        boss.stuckCounter = 0;
-                    }
                     return;
                 }
             }
         }
     }
-    boss.stuckCounter = 0;
     
     // ============================================================
-    // ===== ОСНОВНАЯ ЛОГИКА ДВИЖЕНИЯ =====
+    // ===== ОСНОВНАЯ ЛОГИКА ДВИЖЕНИЯ (как у обычного врага) =====
     // ============================================================
     const dx = player.x - boss.x;
     const dy = player.y - boss.y;
@@ -191,16 +199,13 @@ function updateBoss() {
     if (boss.lastDirChange > 4 + Math.floor(Math.random() * 4)) {
         boss.lastDirChange = 0;
         
-        const futureX = player.x + player.dirX * 5;
-        const futureY = player.y + player.dirY * 5;
-        
         let newDirX = 0, newDirY = 0;
         if (distToPlayer < 6) {
             const angle = Math.atan2(dy, dx) + (Math.random() > 0.5 ? 1.2 : -1.2);
             newDirX = Math.round(Math.cos(angle));
             newDirY = Math.round(Math.sin(angle));
         } else {
-            const angle = Math.atan2(futureY - boss.y, futureX - boss.x);
+            const angle = Math.atan2(dy, dx);
             const offset = (Math.random() - 0.5) * 0.8;
             newDirX = Math.round(Math.cos(angle + offset));
             newDirY = Math.round(Math.sin(angle + offset));
@@ -218,22 +223,17 @@ function updateBoss() {
             newDirX = 1;
         }
         
-        // ===== ЗАПРЕТ РАЗВОРОТА НАЗАД =====
+        // Запрет разворота назад
         if (boss.lastDirection) {
             const isReverseX = newDirX === -boss.lastDirection.dx && newDirY === 0;
             const isReverseY = newDirY === -boss.lastDirection.dy && newDirX === 0;
-            const isFullReverse = newDirX === -boss.lastDirection.dx && newDirY === -boss.lastDirection.dy;
-            
-            if (isReverseX || isReverseY || isFullReverse) {
+            if (isReverseX || isReverseY) {
                 if (newDirX !== 0) {
                     newDirX = 0;
                     newDirY = (Math.random() < 0.5) ? 1 : -1;
                 } else if (newDirY !== 0) {
                     newDirY = 0;
                     newDirX = (Math.random() < 0.5) ? 1 : -1;
-                } else {
-                    newDirX = boss.lastDirection.dx;
-                    newDirY = boss.lastDirection.dy;
                 }
             }
         }
@@ -268,6 +268,7 @@ function updateBoss() {
 function hitBoss() {
     if (!boss || !boss.alive) return;
     if (boss.spawnProtection > 0) return;
+    if (boss.invincible) return; // ← НЕЛЬЗЯ УДАРИТЬ В НЕУЯЗВИМОСТИ
     
     const player = players[0];
     if (!player || !player.alive) return;
