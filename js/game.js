@@ -8,12 +8,6 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
-// Флаги бонусов
-let bonusShieldActive = false;
-let bonusSpeedActive = false;
-let bonusSlowActive = false;
-let bonusNoTrailActive = false;
-
 // spawnTimer объявлен в survival.js
 
 function showVictory(name) {
@@ -24,7 +18,6 @@ function showVictory(name) {
         setTimeout(() => overlay.classList.remove('show'), 2000);
     }
     
-    // ===== САЛЮТ ПРИ ПОБЕДЕ =====
     if (typeof startFireworks === 'function') {
         const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
         startFireworks(color, 6);
@@ -60,7 +53,6 @@ function showVictory(name) {
 }
 
 function updateGame() {
-    // Обновляем салют
     try {
         if (typeof updateFireworks === 'function') updateFireworks();
     } catch(e) {}
@@ -69,21 +61,32 @@ function updateGame() {
     
     // ===== РЕЖИМ ГОНКИ =====
     if (matchMode === 'race') {
-        if (typeof updateRace === 'function') {
-            updateRace();
-        }
-        if (typeof drawRace === 'function') {
-            drawRace();
-        }
+        if (typeof updateRace === 'function') updateRace();
+        if (typeof drawRace === 'function') drawRace();
         updateUI();
         return;
     }
     
-    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
+    // ============================================================
+    // ===== БОНУСЫ: ПРОВЕРКА ЭФФЕКТОВ =====
+    // ============================================================
+    let speedMultiplier = 1;
+    let shieldActive = false;
+    
+    if (typeof bonusEffects !== 'undefined') {
+        if (bonusEffects.speed && bonusEffects.speed.active) {
+            speedMultiplier = 1.5; // ускорение на 50%
+        }
+        if (bonusEffects.shield && bonusEffects.shield.active) {
+            shieldActive = true;
+        }
+    }
+    
+    // ===== ДВИЖЕНИЕ ИГРОКОВ (с ускорением) =====
     for (let p of players) {
         if (!p.alive) continue;
-        p.x += p.dirX;
-        p.y += p.dirY;
+        p.x += p.dirX * speedMultiplier;
+        p.y += p.dirY * speedMultiplier;
         p.trail.push({ x: p.x, y: p.y });
         if (p.trail.length > 30) p.trail.shift();
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
@@ -122,14 +125,14 @@ function updateGame() {
     if (typeof updateParticles === 'function') updateParticles();
     
     // ============================================================
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ (с учётом щита) =====
     // ============================================================
     for (let p of players) {
         if (!p.alive) continue;
         
         // ===== ЩИТ (полная неуязвимость) =====
-        if (bonusEffects && bonusEffects.shield && bonusEffects.shield.active) {
-            continue;
+        if (shieldActive && p === players[0]) {
+            continue; // ← пропускаем все проверки
         }
         
         // Границы
