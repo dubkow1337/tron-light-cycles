@@ -3,36 +3,13 @@
 function aiMove() {
     if (opponentType !== 'ai') return;
     if (!players[1].alive) return;
-    
     const p = players[1];
     const enemy = players[0];
-    
-    // ============================================================
-    // ===== БОНУС: ЗАМЕДЛЕНИЕ ВРАГОВ (ЧЕРЕПАХА) =====
-    // ============================================================
-    let speedMultiplier = 1;
-    if (typeof bonusEffects !== 'undefined' && 
-        bonusEffects.slowEnemies && 
-        bonusEffects.slowEnemies.active) {
-        speedMultiplier = 0.5; // бот на 50% медленнее
-    }
-    
-    // ============================================================
-    // ===== БОНУС: НОЖНИЦЫ (бот не оставляет след) =====
-    // ============================================================
-    let noTrail = false;
-    if (typeof bonusEffects !== 'undefined' && 
-        bonusEffects.noTrail && 
-        bonusEffects.noTrail.active) {
-        noTrail = true;
-    }
-    
     const dirs = [
         { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
         { dx: -1, dy: 0 }, { dx: 1, dy: 0 }
     ];
     let moveScores = [];
-    
     for (const dir of dirs) {
         let newX = p.x + dir.dx;
         let newY = p.y + dir.dy;
@@ -76,22 +53,11 @@ function aiMove() {
     p.dirX = bestDir.dx;
     p.dirY = bestDir.dy;
     
-    // ============================================================
-    // ===== ДВИЖЕНИЕ БОТА (С ОГРАНИЧЕНИЕМ СКОРОСТИ) =====
-    // ============================================================
-    // Скорость бота — такая же, как в классике (0.7)
-    const BOT_SPEED = 0.7;
-    const moveSpeed = BOT_SPEED * speedMultiplier;
-    p.x += p.dirX * moveSpeed;
-    p.y += p.dirY * moveSpeed;
+    // Движение (оригинальная скорость)
+    p.x += p.dirX;
+    p.y += p.dirY;
     
-    // ============================================================
-    // ===== СЛЕД БОТА (НОЖНИЦЫ — НЕ ДОБАВЛЯЕМ) =====
-    // ============================================================
-    if (!noTrail) {
-        p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > 15) p.trail.shift();
-    } else {
-        p.trail = [{ x: p.x, y: p.y }];
-    }
+    // След
+    p.trail.push({ x: p.x, y: p.y });
+    if (p.trail.length > 15) p.trail.shift();
 }
