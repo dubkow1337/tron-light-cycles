@@ -8,10 +8,13 @@ let currentSteps = 0;
 let bestRecord = localStorage.getItem('tronRecord') ? parseInt(localStorage.getItem('tronRecord')) : 0;
 let MOVE_INTERVAL = 70;
 
+// Флаги бонусов
 let bonusShieldActive = false;
 let bonusSpeedActive = false;
 let bonusSlowActive = false;
 let bonusNoTrailActive = false;
+
+// spawnTimer объявлен в survival.js
 
 function showVictory(name) {
     const overlay = document.getElementById('victoryOverlay');
@@ -21,14 +24,10 @@ function showVictory(name) {
         setTimeout(() => overlay.classList.remove('show'), 2000);
     }
     
-    // ===== САЛЮТ =====
-    try {
-        if (typeof startFireworks === 'function') {
-            const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
-            startFireworks(color, 6);
-        }
-    } catch(e) {
-        console.warn('Салют не сработал:', e);
+    // ===== САЛЮТ ПРИ ПОБЕДЕ =====
+    if (typeof startFireworks === 'function') {
+        const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
+        startFireworks(color, 6);
     }
     
     if (matchMode === 'tournament') {
@@ -47,7 +46,7 @@ function showVictory(name) {
         return;
     }
     
-    if (opponentType === 'survival' && currentSteps > bestRecord) {
+    if (matchMode === 'survival' && currentSteps > bestRecord) {
         bestRecord = currentSteps;
         localStorage.setItem('tronRecord', bestRecord);
         const recordDisplay = document.getElementById('menuRecordDisplay');
@@ -68,13 +67,19 @@ function updateGame() {
     
     if (!gameActive) return;
     
+    // ===== РЕЖИМ ГОНКИ =====
     if (matchMode === 'race') {
-        if (typeof updateRace === 'function') updateRace();
-        if (typeof drawRace === 'function') drawRace();
+        if (typeof updateRace === 'function') {
+            updateRace();
+        }
+        if (typeof drawRace === 'function') {
+            drawRace();
+        }
         updateUI();
         return;
     }
     
+    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
         p.x += p.dirX;
@@ -84,7 +89,8 @@ function updateGame() {
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
     }
     
-    if (opponentType === 'survival') {
+    // ===== ОБНОВЛЕНИЕ РЕЖИМОВ =====
+    if (matchMode === 'survival') {
         if (typeof updateSurvival === 'function') updateSurvival();
         if (typeof spawnTimer !== 'undefined' && gameActive) {
             spawnTimer += 16;
@@ -93,17 +99,48 @@ function updateGame() {
         if (typeof aiMove === 'function') aiMove();
     }
     
+    // ============================================================
+    // ===== БОНУСЫ (ОБНОВЛЕНИЕ И СБОР) =====
+    // ============================================================
+    if (typeof updateBonuses === 'function') {
+        updateBonuses();
+    }
+    
+    if (typeof bonuses !== 'undefined') {
+        for (let i = 0; i < bonuses.length; i++) {
+            const b = bonuses[i];
+            if (players[0].alive && players[0].x === b.x && players[0].y === b.y) {
+                if (typeof collectBonus === 'function') {
+                    collectBonus(b, players[0]);
+                }
+                bonuses.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
     if (typeof updateParticles === 'function') updateParticles();
     
+    // ============================================================
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
+    // ============================================================
     for (let p of players) {
         if (!p.alive) continue;
-        if (bonusShieldActive && p === players[0]) continue;
+        
+        // ===== ЩИТ (полная неуязвимость) =====
+        if (bonusEffects && bonusEffects.shield && bonusEffects.shield.active) {
+            continue;
+        }
+        
+        // Границы
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
             if (typeof explode === 'function') explode(p.x, p.y, p.color);
             continue;
         }
+        
+        // Свой след
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -113,6 +150,8 @@ function updateGame() {
             }
         }
         if (!p.alive) continue;
+        
+        // Следы других игроков
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -132,6 +171,8 @@ function updateGame() {
             }
             if (!p.alive) break;
         }
+        
+        // Следы врагов (выживание)
         if (!p.alive) continue;
         if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
@@ -154,10 +195,29 @@ function updateGame() {
                 if (!p.alive) break;
             }
         }
+        
+        // Босс
+        if (!p.alive) continue;
+        if (typeof boss !== 'undefined' && boss && boss.alive) {
+            for (let dx = 0; dx < boss.size; dx++) {
+                for (let dy = 0; dy < boss.size; dy++) {
+                    const bx = boss.x + dx;
+                    const by = boss.y + dy;
+                    if (p.x === bx && p.y === by) {
+                        p.alive = false;
+                        crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
+                        if (typeof explode === 'function') explode(p.x, p.y, p.color);
+                        break;
+                    }
+                }
+                if (!p.alive) break;
+            }
+        }
     }
     
+    // ===== ОПРЕДЕЛЕНИЕ ПОБЕДИТЕЛЯ =====
     const alivePlayers = players.filter(p => p.alive);
-    if (alivePlayers.length === 1 && opponentType !== 'survival') {
+    if (alivePlayers.length === 1 && matchMode !== 'survival') {
         let winnerIdx = players.findIndex(p => p.alive);
         players[winnerIdx].score++;
         gameActive = false;
@@ -169,14 +229,14 @@ function updateGame() {
         return;
     }
     
-    if (alivePlayers.length === 0 && opponentType !== 'survival') {
+    if (alivePlayers.length === 0 && matchMode !== 'survival') {
         gameActive = false;
         showMessage('Ничья!');
         if (typeof stopBgMusic === 'function') stopBgMusic();
         return;
     }
     
-    if (opponentType === 'survival' && !players[0].alive) {
+    if (matchMode === 'survival' && !players[0].alive) {
         gameActive = false;
         if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
         showMessage('ВЫ ПРОИГРАЛИ! Нажмите ИГРАТЬ');
@@ -192,9 +252,10 @@ function updateGame() {
 function initGame() {
     if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
     if (typeof spawnTimer !== 'undefined') spawnTimer = 0;
+    if (typeof resetBonuses === 'function') resetBonuses();
     if (typeof resetPlayers === 'function') resetPlayers();
     
-    if (opponentType === 'survival') {
+    if (matchMode === 'survival') {
         if (typeof spawnSurvivalEnemies === 'function') spawnSurvivalEnemies();
         if (typeof resetSurvivalTimer === 'function') resetSurvivalTimer();
         players[1].alive = false;
