@@ -3,16 +3,13 @@
 let survivalEnemies = [];
 let spawnTimer = 0;
 let lastSpawnTime = 0;
-let bossSpawnTimer = 0; // ← ТАЙМЕР ДЛЯ БОССА
 const SPAWN_INTERVAL = 3000; // 3 секунды между появлением новых
 const MAX_ENEMIES = 20;
-const BOSS_SPAWN_INTERVAL = 15000; // ← 15 СЕКУНД
 
 function spawnSurvivalEnemies() {
     survivalEnemies = [];
     spawnTimer = 0;
     lastSpawnTime = Date.now();
-    bossSpawnTimer = 0; // ← СБРАСЫВАЕМ ТАЙМЕР БОССА
     
     // Первая волна — 3 врага
     for (let i = 0; i < 3; i++) {
@@ -25,7 +22,7 @@ function spawnSurvivalEnemies() {
             spawnBoss();
             showMessage('⚠️ LIGHT RUNNER ПРИБЫВАЕТ!');
         }
-    }, 10000);
+    }, 2000);
 }
 
 function spawnSingleEnemy() {
@@ -78,7 +75,7 @@ function spawnSingleEnemy() {
 }
 
 function updateSurvival() {
-    if (opponentType !== 'survival') return;
+    if (matchMode !== 'survival') return;
     
     const player = players[0];
     if (!player.alive) {
@@ -98,22 +95,37 @@ function updateSurvival() {
         showMessage(`⚠️ НОВЫЙ ВРАГ! (${aliveCount} всего)`);
     }
     
-    // ===== ТАЙМЕР ДЛЯ БОССА (КАЖДЫЕ 15 СЕКУНД) =====
-    if (typeof boss !== 'undefined') {
+    // ===== БОСС: КАЖДЫЕ 15 СЕКУНД, ШАНС 30% НА 2 БОССОВ =====
+    if (typeof boss !== 'undefined' && typeof spawnBoss === 'function') {
+        if (bossSpawnTimer === undefined) bossSpawnTimer = 0;
         bossSpawnTimer += 16; // примерно 16 мс за кадр
-        if (bossSpawnTimer >= BOSS_SPAWN_INTERVAL) {
+        
+        if (bossSpawnTimer >= 15000) { // 15 секунд
             bossSpawnTimer = 0;
+            
             // Проверяем, что босс мёртв или его нет
             if (!boss || !boss.alive) {
-                if (typeof spawnBoss === 'function' && players[0] && players[0].alive) {
-                    spawnBoss();
-                    showMessage('⚠️ LIGHT RUNNER ВОЗВРАЩАЕТСЯ!');
+                // Случайно: 1 или 2 босса (30% шанс на 2)
+                const bossCount = Math.random() < 0.3 ? 2 : 1;
+                
+                for (let i = 0; i < bossCount; i++) {
+                    // Небольшая задержка между спавнами, чтобы они не накладывались
+                    setTimeout(() => {
+                        if (players[0] && players[0].alive && typeof spawnBoss === 'function') {
+                            spawnBoss();
+                            if (bossCount > 1) {
+                                showMessage(`⚠️ LIGHT RUNNER ×${bossCount} ПРИБЫВАЮТ!`);
+                            } else {
+                                showMessage('⚠️ LIGHT RUNNER ПРИБЫВАЕТ!');
+                            }
+                        }
+                    }, i * 300);
                 }
             }
         }
         
-        // Обновляем босса
-        if (typeof updateBoss === 'function') {
+        // Обновляем босса, если он есть
+        if (typeof updateBoss === 'function' && boss && boss.alive) {
             updateBoss();
         }
     }
