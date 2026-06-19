@@ -12,30 +12,29 @@ function spawnBoss() {
     let x, y;
     let dirX = 0, dirY = 0;
     
-    // Выбираем сторону для появления (0-3)
     const side = Math.floor(Math.random() * 4);
     
     switch(side) {
-        case 0: // Сверху
+        case 0:
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
-            y = 1; // ← сразу на границе поля
+            y = 1;
             dirX = 0;
             dirY = 1;
             break;
-        case 1: // Снизу
+        case 1:
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
-            y = HEIGHT - 2; // ← сразу на границе поля
+            y = HEIGHT - 2;
             dirX = 0;
             dirY = -1;
             break;
-        case 2: // Слева
-            x = 1; // ← сразу на границе поля
+        case 2:
+            x = 1;
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = 1;
             dirY = 0;
             break;
-        case 3: // Справа
-            x = WIDTH - 2; // ← сразу на границе поля
+        case 3:
+            x = WIDTH - 2;
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = -1;
             dirY = 0;
@@ -53,16 +52,14 @@ function spawnBoss() {
         health: BOSS_MAX_HEALTH,
         maxHealth: BOSS_MAX_HEALTH,
         speed: 0.8,
-        spawnProtection: 10, // небольшая защита при спавне
+        spawnProtection: 10,
         lastDirChange: 0,
         size: BOSS_SIZE,
         trailOffsetX: Math.floor(BOSS_SIZE / 2),
         trailOffsetY: Math.floor(BOSS_SIZE / 2),
-        entering: false, // ← больше не въезжает
         lastDirection: { dx: dirX, dy: dirY }
     };
     
-    // Начальная точка следа
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
@@ -87,6 +84,7 @@ function updateBoss() {
     // ============================================================
     // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА С ИГРОКОМ =====
     // ============================================================
+    // Проверяем каждую клетку босса (BOSS_SIZE x BOSS_SIZE)
     for (let dx = 0; dx < boss.size; dx++) {
         for (let dy = 0; dy < boss.size; dy++) {
             const bx = boss.x + dx;
@@ -139,7 +137,6 @@ function updateBoss() {
                         boss.dirY = -boss.dirY || 1;
                         boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
                     }
-                    // Выходим, чтобы не было множественных попаданий
                     return;
                 }
             }
@@ -184,7 +181,6 @@ function updateBoss() {
             newDirX = 1;
         }
         
-        // Запрет разворота назад
         if (boss.lastDirection) {
             const isReverse = (newDirX === -boss.lastDirection.dx || newDirY === -boss.lastDirection.dy) &&
                               (newDirX === 0 || newDirY === 0);
@@ -209,7 +205,6 @@ function updateBoss() {
         const newX = boss.x + boss.dirX;
         const newY = boss.y + boss.dirY;
         
-        // Если выходит за границы — разворачиваемся
         if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
             boss.dirX = -boss.dirX || 1;
             boss.dirY = -boss.dirY || 1;
@@ -220,7 +215,6 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // След
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
