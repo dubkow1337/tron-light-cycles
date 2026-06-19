@@ -53,11 +53,8 @@ function aiMove() {
     p.dirX = bestDir.dx;
     p.dirY = bestDir.dy;
     
-    // Движение (оригинальная скорость)
     p.x += p.dirX;
     p.y += p.dirY;
-    
-    // След
     p.trail.push({ x: p.x, y: p.y });
     if (p.trail.length > 15) p.trail.shift();
 }
