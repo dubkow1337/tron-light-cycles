@@ -12,41 +12,34 @@ function spawnBoss() {
     let x, y;
     let dirX = 0, dirY = 0;
     
+    // Сторона въезда
     const side = Math.floor(Math.random() * 4);
     
     switch(side) {
-        case 0:
-            x = Math.floor(Math.random() * WIDTH);
-            y = -BOSS_SIZE - 2;
-            dirX = (Math.random() > 0.5) ? 1 : -1;
+        case 0: // сверху
+            x = 2 + Math.floor(Math.random() * (WIDTH - 4));
+            y = -BOSS_SIZE - 1;
+            dirX = 0;
             dirY = 1;
             break;
-        case 1:
-            x = Math.floor(Math.random() * WIDTH);
-            y = HEIGHT + 2;
-            dirX = (Math.random() > 0.5) ? 1 : -1;
+        case 1: // снизу
+            x = 2 + Math.floor(Math.random() * (WIDTH - 4));
+            y = HEIGHT + 1;
+            dirX = 0;
             dirY = -1;
             break;
-        case 2:
-            x = -BOSS_SIZE - 2;
-            y = Math.floor(Math.random() * HEIGHT);
+        case 2: // слева
+            x = -BOSS_SIZE - 1;
+            y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = 1;
-            dirY = (Math.random() > 0.5) ? 1 : -1;
-            break;
-        case 3:
-            x = WIDTH + 2;
-            y = Math.floor(Math.random() * HEIGHT);
-            dirX = -1;
-            dirY = (Math.random() > 0.5) ? 1 : -1;
-            break;
-    }
-    
-    if (dirX !== 0 && dirY !== 0) {
-        if (Math.abs(dirX) > Math.abs(dirY)) {
             dirY = 0;
-        } else {
-            dirX = 0;
-        }
+            break;
+        case 3: // справа
+            x = WIDTH + 1;
+            y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
+            dirX = -1;
+            dirY = 0;
+            break;
     }
     
     boss = {
@@ -67,9 +60,10 @@ function spawnBoss() {
         trailOffsetY: Math.floor(BOSS_SIZE / 2),
         entering: true,
         side: side,
-        lastDirection: { dx: dirX, dy: dirY } // ← запоминаем направление
+        lastDirection: { dx: dirX, dy: dirY }
     };
     
+    // Начальная точка следа (чтобы не было пустого следа)
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
@@ -91,16 +85,19 @@ function updateBoss() {
         boss.spawnProtection--;
     }
     
-    // ===== ВЪЕЗД =====
+    // ===== ВЪЕЗД НА ПОЛЕ =====
     if (boss.entering) {
+        // Движение к полю
         boss.x += boss.dirX * boss.speed;
         boss.y += boss.dirY * boss.speed;
         
+        // Добавляем след во время въезда
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
         if (boss.trail.length > 100) boss.trail.shift();
         
+        // Проверяем, въехал ли на поле
         const onField = boss.x >= 0 && boss.x < WIDTH && boss.y >= 0 && boss.y < HEIGHT;
         if (onField) {
             boss.entering = false;
@@ -109,7 +106,7 @@ function updateBoss() {
         return;
     }
     
-    // ===== ОСНОВНАЯ ЛОГИКА =====
+    // ===== ОСНОВНАЯ ЛОГИКА (на поле) =====
     const dx = player.x - boss.x;
     const dy = player.y - boss.y;
     const distToPlayer = Math.hypot(dx, dy);
@@ -145,43 +142,25 @@ function updateBoss() {
             newDirX = 1;
         }
         
-        // ===== ЗАПРЕТ НА РАЗВОРОТ НАЗАД (нельзя поехать обратно) =====
-        // Если новое направление противоположно последнему — запрещаем
+        // Запрет разворота назад
         if (boss.lastDirection) {
-            const isReverseX = newDirX === -boss.lastDirection.dx && newDirY === 0;
-            const isReverseY = newDirY === -boss.lastDirection.dy && newDirX === 0;
-            const isFullReverse = newDirX === -boss.lastDirection.dx && newDirY === -boss.lastDirection.dy;
-            
-            if (isReverseX || isReverseY || isFullReverse) {
-                // Пытаемся выбрать другое направление (не разворот)
-                const alternatives = [];
+            const isReverse = (newDirX === -boss.lastDirection.dx || newDirY === -boss.lastDirection.dy) &&
+                              (newDirX === 0 || newDirY === 0);
+            if (isReverse) {
+                // Выбираем альтернативу (вверх или вниз)
                 if (newDirX !== 0) {
-                    // Если пытались развернуться по X, пробуем вверх/вниз
-                    alternatives.push({ dx: 0, dy: -1 });
-                    alternatives.push({ dx: 0, dy: 1 });
-                } else if (newDirY !== 0) {
-                    alternatives.push({ dx: -1, dy: 0 });
-                    alternatives.push({ dx: 1, dy: 0 });
-                }
-                // Добавляем текущее направление как запасное
-                alternatives.push({ dx: boss.lastDirection.dx, dy: boss.lastDirection.dy });
-                
-                // Выбираем первое безопасное
-                for (let alt of alternatives) {
-                    const testX = boss.x + alt.dx;
-                    const testY = boss.y + alt.dy;
-                    if (testX >= 1 && testX < WIDTH - BOSS_SIZE && testY >= 1 && testY < HEIGHT - BOSS_SIZE) {
-                        newDirX = alt.dx;
-                        newDirY = alt.dy;
-                        break;
-                    }
+                    newDirX = 0;
+                    newDirY = (Math.random() < 0.5) ? 1 : -1;
+                } else {
+                    newDirY = 0;
+                    newDirX = (Math.random() < 0.5) ? 1 : -1;
                 }
             }
         }
         
         boss.dirX = newDirX;
         boss.dirY = newDirY;
-        boss.lastDirection = { dx: newDirX, dy: newDirY }; // ← обновляем последнее направление
+        boss.lastDirection = { dx: newDirX, dy: newDirY };
     }
     
     // Движение
@@ -189,7 +168,8 @@ function updateBoss() {
         const newX = boss.x + boss.dirX;
         const newY = boss.y + boss.dirY;
         
-        if (newX < 1 || newX >= WIDTH - BOSS_SIZE || newY < 1 || newY >= HEIGHT - BOSS_SIZE) {
+        if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
+            // Если упёрся в стену — разворачиваемся
             boss.dirX = -boss.dirX || 1;
             boss.dirY = -boss.dirY || 1;
             boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
@@ -199,12 +179,13 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
+        // След
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
         if (boss.trail.length > 100) boss.trail.shift();
         
-        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА (без изменений) =====
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
         let hitPlayerTrail = false;
         const playerTrail = player.trail || [];
         
@@ -242,7 +223,6 @@ function updateBoss() {
                 }
                 showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
                 currentSteps += 10;
-                bossSpawnTimer = 0;
                 boss = null;
                 return;
             } else {
@@ -312,7 +292,6 @@ function hitBoss() {
         }
         showMessage(`🎉 LIGHT RUNNER УНИЧТОЖЕН! +10 шагов к рекорду`);
         currentSteps += 10;
-        bossSpawnTimer = 0;
         boss = null;
     } else {
         showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
@@ -321,5 +300,4 @@ function hitBoss() {
 
 function resetBoss() {
     boss = null;
-    bossSpawnTimer = 0;
 }
