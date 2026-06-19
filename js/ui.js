@@ -129,28 +129,58 @@ function setupEventListeners() {
         });
     }
     
-    // ===== КНОПКА НАЗАД =====
-    const backBtn = document.getElementById('backToMenuBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (typeof gameLoop !== 'undefined' && gameLoop) {
-                clearInterval(gameLoop);
-                gameLoop = null;
-            }
-            if (typeof gameActive !== 'undefined') gameActive = false;
-            paused = false;
-            
-            if (typeof survivalEnemies !== 'undefined') {
-                survivalEnemies = [];
-            }
-            
-            showScreen('menuScreen');
-            const recordDisplay = document.getElementById('menuRecordDisplay');
-            if (recordDisplay && typeof bestRecord !== 'undefined') {
-                recordDisplay.innerText = bestRecord;
-            }
-        });
-    }
+    // ===== КНОПКА НАЗАД (ПОЛНАЯ ОСТАНОВКА ИГРЫ) =====
+const backBtn = document.getElementById('backToMenuBtn');
+if (backBtn) {
+    backBtn.addEventListener('click', () => {
+        // 1. Останавливаем игровой цикл
+        if (typeof gameLoop !== 'undefined' && gameLoop) {
+            clearInterval(gameLoop);
+            gameLoop = null;
+        }
+        
+        // 2. Останавливаем все таймеры (если есть)
+        if (typeof countdownInterval !== 'undefined') {
+            clearInterval(countdownInterval);
+        }
+        
+        // 3. Останавливаем музыку
+        if (typeof stopBgMusic === 'function') {
+            stopBgMusic();
+        }
+        
+        // 4. Сбрасываем состояние игры
+        if (typeof gameActive !== 'undefined') gameActive = false;
+        paused = false;
+        
+        // 5. Очищаем врагов (если есть)
+        if (typeof survivalEnemies !== 'undefined') {
+            survivalEnemies = [];
+        }
+        
+        // 6. Сбрасываем бонусы
+        if (typeof resetBonuses === 'function') {
+            resetBonuses();
+        }
+        
+        // 7. Сбрасываем босса
+        if (typeof resetBoss === 'function') {
+            resetBoss();
+        }
+        
+        // 8. Переключаемся на меню
+        showScreen('menuScreen');
+        
+        // 9. Обновляем рекорд в меню
+        const recordDisplay = document.getElementById('menuRecordDisplay');
+        if (recordDisplay && typeof bestRecord !== 'undefined') {
+            recordDisplay.innerText = bestRecord;
+        }
+        
+        // 10. Очищаем сообщение
+        showMessage('Выберите противника и режим матча, затем нажмите ИГРАТЬ');
+    });
+}
     
     // ===== КНОПКА "ИГРАТЬ СНОВА" =====
     const restartBtn = document.getElementById('restartGameBtn');
