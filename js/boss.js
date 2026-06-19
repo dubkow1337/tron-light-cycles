@@ -12,29 +12,30 @@ function spawnBoss() {
     let x, y;
     let dirX = 0, dirY = 0;
     
+    // Выбираем сторону для появления (0-3)
     const side = Math.floor(Math.random() * 4);
     
     switch(side) {
-        case 0:
+        case 0: // Сверху
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
-            y = -BOSS_SIZE - 1;
+            y = 1; // ← сразу на границе поля
             dirX = 0;
             dirY = 1;
             break;
-        case 1:
+        case 1: // Снизу
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
-            y = HEIGHT + 1;
+            y = HEIGHT - 2; // ← сразу на границе поля
             dirX = 0;
             dirY = -1;
             break;
-        case 2:
-            x = -BOSS_SIZE - 1;
+        case 2: // Слева
+            x = 1; // ← сразу на границе поля
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = 1;
             dirY = 0;
             break;
-        case 3:
-            x = WIDTH + 1;
+        case 3: // Справа
+            x = WIDTH - 2; // ← сразу на границе поля
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = -1;
             dirY = 0;
@@ -52,21 +53,21 @@ function spawnBoss() {
         health: BOSS_MAX_HEALTH,
         maxHealth: BOSS_MAX_HEALTH,
         speed: 0.8,
-        spawnProtection: 30,
+        spawnProtection: 10, // небольшая защита при спавне
         lastDirChange: 0,
         size: BOSS_SIZE,
         trailOffsetX: Math.floor(BOSS_SIZE / 2),
         trailOffsetY: Math.floor(BOSS_SIZE / 2),
-        entering: true,
-        side: side,
+        entering: false, // ← больше не въезжает
         lastDirection: { dx: dirX, dy: dirY }
     };
     
+    // Начальная точка следа
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
     
-    showMessage(`⚠️ LIGHT RUNNER ПРИБЫВАЕТ! (❤️ ${BOSS_MAX_HEALTH})`);
+    showMessage(`⚠️ LIGHT RUNNER ПОЯВИЛСЯ! (❤️ ${BOSS_MAX_HEALTH})`);
 }
 
 function updateBoss() {
@@ -83,28 +84,9 @@ function updateBoss() {
         boss.spawnProtection--;
     }
     
-    // ===== ВЪЕЗД =====
-    if (boss.entering) {
-        boss.x += boss.dirX * boss.speed;
-        boss.y += boss.dirY * boss.speed;
-        
-        const trailX = boss.x + boss.trailOffsetX;
-        const trailY = boss.y + boss.trailOffsetY;
-        boss.trail.push({ x: trailX, y: trailY });
-        if (boss.trail.length > 100) boss.trail.shift();
-        
-        const onField = boss.x >= 0 && boss.x < WIDTH && boss.y >= 0 && boss.y < HEIGHT;
-        if (onField) {
-            boss.entering = false;
-            showMessage(`🔥 LIGHT RUNNER В ПОЛЕ! ❤️ ${boss.health}/${boss.maxHealth}`);
-        }
-        return;
-    }
-    
     // ============================================================
     // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА С ИГРОКОМ =====
     // ============================================================
-    // Босс наезжает на игрока (игрок умирает)
     for (let dx = 0; dx < boss.size; dx++) {
         for (let dy = 0; dy < boss.size; dy++) {
             const bx = boss.x + dx;
@@ -126,13 +108,11 @@ function updateBoss() {
     const playerTrail = player.trail || [];
     for (let t = 0; t < playerTrail.length - 1; t++) {
         const seg = playerTrail[t];
-        // Проверяем, не наступил ли босс на след игрока
         for (let dx = 0; dx < boss.size; dx++) {
             for (let dy = 0; dy < boss.size; dy++) {
                 const bx = boss.x + dx;
                 const by = boss.y + dy;
                 if (bx === seg.x && by === seg.y) {
-                    // Босс получает урон
                     boss.health--;
                     if (typeof explode === 'function') explode(boss.x, boss.y, '#ffaa00');
                     
@@ -155,19 +135,20 @@ function updateBoss() {
                         return;
                     } else {
                         showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
-                        // Отталкиваем босса
                         boss.dirX = -boss.dirX || 1;
                         boss.dirY = -boss.dirY || 1;
                         boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
                     }
-                    // Выходим из циклов, чтобы не было множественных попаданий за один шаг
+                    // Выходим, чтобы не было множественных попаданий
                     return;
                 }
             }
         }
     }
     
+    // ============================================================
     // ===== ОСНОВНАЯ ЛОГИКА ДВИЖЕНИЯ =====
+    // ============================================================
     const dx = player.x - boss.x;
     const dy = player.y - boss.y;
     const distToPlayer = Math.hypot(dx, dy);
@@ -228,6 +209,7 @@ function updateBoss() {
         const newX = boss.x + boss.dirX;
         const newY = boss.y + boss.dirY;
         
+        // Если выходит за границы — разворачиваемся
         if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
             boss.dirX = -boss.dirX || 1;
             boss.dirY = -boss.dirY || 1;
@@ -248,12 +230,11 @@ function updateBoss() {
 
 function hitBoss() {
     if (!boss || !boss.alive) return;
-    if (boss.entering) return;
+    if (boss.spawnProtection > 0) return;
     
     const player = players[0];
     if (!player || !player.alive) return;
     
-    // Проверяем, касается ли игрок босса
     let hit = false;
     for (let dx = 0; dx < boss.size; dx++) {
         for (let dy = 0; dy < boss.size; dy++) {
