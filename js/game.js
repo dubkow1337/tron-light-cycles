@@ -2,6 +2,7 @@
 
 let gameActive = true;
 let gameLoop = null;
+let countdownInterval = null; // ← глобальный таймер обратного отсчёта
 let countdownActive = false;
 let countdownValue = 3;
 let currentSteps = 0;
@@ -133,40 +134,37 @@ function updateGame() {
             continue;
         }
         
- // ===== УРОН БОТУ ОТ ЛИНИЙ ИГРОКА =====
-if (p === players[1] && opponentType === 'ai' && players[1].alive) {
-    // Проверяем, не врезался ли бот в след игрока
-    const playerTrail = players[0].trail || [];
-    for (let i = 0; i < playerTrail.length - 1; i++) {
-        const seg = playerTrail[i];
-        if (p.x === seg.x && p.y === seg.y) {
-            p.alive = false;
-            if (typeof explode === 'function') explode(p.x, p.y, p.color);
-            crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-            // Даём очко игроку
-            players[0].score++;
-            showMessage('🎯 ВЫ СБИЛИ БОТА!');
-            break;
+        // ===== УРОН БОТУ ОТ ЛИНИЙ ИГРОКА (VS AI) =====
+        if (p === players[1] && opponentType === 'ai' && players[1].alive) {
+            const playerTrail = players[0].trail || [];
+            for (let i = 0; i < playerTrail.length - 1; i++) {
+                const seg = playerTrail[i];
+                if (p.x === seg.x && p.y === seg.y) {
+                    p.alive = false;
+                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
+                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
+                    showMessage('🎯 ВЫ СБИЛИ БОТА!');
+                    break;
+                }
+            }
         }
-    }
-}
-if (!p.alive) continue;
-
-// ===== УРОН ИГРОКУ ОТ ЛИНИЙ БОТА =====
-if (p === players[0] && opponentType === 'ai' && players[0].alive) {
-    const botTrail = players[1].trail || [];
-    for (let i = 0; i < botTrail.length - 1; i++) {
-        const seg = botTrail[i];
-        if (p.x === seg.x && p.y === seg.y) {
-            p.alive = false;
-            if (typeof explode === 'function') explode(p.x, p.y, p.color);
-            crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-            showMessage('💥 ВЫ ВРЕЗАЛИСЬ В СЛЕД БОТА!');
-            break;
+        if (!p.alive) continue;
+        
+        // ===== УРОН ИГРОКУ ОТ ЛИНИЙ БОТА (VS AI) =====
+        if (p === players[0] && opponentType === 'ai' && players[0].alive) {
+            const botTrail = players[1].trail || [];
+            for (let i = 0; i < botTrail.length - 1; i++) {
+                const seg = botTrail[i];
+                if (p.x === seg.x && p.y === seg.y) {
+                    p.alive = false;
+                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
+                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
+                    showMessage('💥 ВЫ ВРЕЗАЛИСЬ В СЛЕД БОТА!');
+                    break;
+                }
+            }
         }
-    }
-}
-if (!p.alive) continue;
+        if (!p.alive) continue;
         
         // ===== ГРАНИЦЫ =====
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
@@ -306,7 +304,13 @@ function initGame() {
     updateUI();
     if (typeof draw === 'function') draw();
     
-    const countdownInterval = setInterval(() => {
+    // Очищаем старый таймер обратного отсчёта, если есть
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    
+    countdownInterval = setInterval(() => {
         countdownValue--;
         if (countdownValue === 2) {
             const msgDiv = document.getElementById('gameMessage');
@@ -325,6 +329,7 @@ function initGame() {
             if (typeof draw === 'function') draw();
         } else if (countdownValue < 0) {
             clearInterval(countdownInterval);
+            countdownInterval = null;
             const msgDiv = document.getElementById('gameMessage');
             if (msgDiv) msgDiv.textContent = '';
             gameActive = true;
@@ -342,6 +347,7 @@ function initGame() {
 
 function resetGame() {
     if (gameLoop) clearInterval(gameLoop);
+    gameLoop = null;
     paused = false;
     initGame();
 }
