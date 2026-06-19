@@ -42,16 +42,16 @@ function countdownBeep(step) {
     if (!soundEnabled) return;
     
     switch(step) {
-        case 3: // "3" — длинный низкий писк
+        case 3:
             playBeep(440, 0.3, 0.15, 'square');
             break;
-        case 2: // "2" — средний писк
+        case 2:
             playBeep(660, 0.25, 0.15, 'square');
             break;
-        case 1: // "1" — высокий писк
+        case 1:
             playBeep(880, 0.2, 0.15, 'square');
             break;
-        case 0: // "GO!" — победный писк (как в гонках)
+        case 0:
             playBeep(1200, 0.1, 0.2, 'square');
             setTimeout(() => playBeep(1500, 0.15, 0.2, 'square'), 120);
             setTimeout(() => playBeep(1800, 0.2, 0.25, 'square'), 250);
@@ -59,12 +59,11 @@ function countdownBeep(step) {
     }
 }
 
-// ===== ОСТАЛЬНОЕ (ГОЛОС ОСТАВЛЯЕМ ТОЛЬКО ДЛЯ ПОБЕДЫ) =====
 function initSound() {
     try {
         bgMusic = new Audio('assets/sounds/tron-music.mp3');
         bgMusic.loop = true;
-        bgMusic.volume = 0.1;
+        bgMusic.volume = 0.3;
     } catch(e) { 
         console.log('Sound not loaded'); 
     }
@@ -85,7 +84,7 @@ function stopBgMusic() {
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
-    const btn = document.getElementById('soundToggle');
+    const btn = document.getElementById('menuSoundToggle');
     if (btn) {
         btn.textContent = soundEnabled ? '🔊' : '🔇';
     }
@@ -96,7 +95,6 @@ function toggleSound() {
     }
 }
 
-// ===== ГОЛОС ТОЛЬКО ДЛЯ ПОБЕДЫ =====
 function loadTTSVoice() {
     const voices = window.speechSynthesis.getVoices();
     ttsVoice = voices.find(voice => voice.name === 'Microsoft Pavel' && voice.lang === 'ru-RU');
@@ -115,13 +113,11 @@ function speakVictory(text) {
     window.speechSynthesis.speak(utterance);
 }
 
-// ===== СОВМЕСТИМОСТЬ (чтобы старый код не сломался) =====
+// ===== СОВМЕСТИМОСТЬ =====
 function speak(text) {
-    // Если это обратный отсчёт — пищим, а не говорим
     if (text === "Три" || text === "Два" || text === "Один" || text === "Вперёд") {
-        return; // Ничего не делаем, писк идёт из countdownBeep
+        return;
     }
-    // Для всего остального (победа и т.д.) — голос
     speakVictory(text);
 }
 
