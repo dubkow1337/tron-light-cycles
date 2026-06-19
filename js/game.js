@@ -17,11 +17,6 @@ function showVictory(name) {
         setTimeout(() => overlay.classList.remove('show'), 2000);
     }
     
-    if (typeof startFireworks === 'function') {
-        const color = name === 'Синий' ? '#00ffff' : '#ffaa00';
-        startFireworks(color, 6);
-    }
-    
     if (matchMode === 'tournament') {
         if (name === 'Синий') tournamentScore[0]++;
         else if (name === 'Оранжевый') tournamentScore[1]++;
@@ -38,95 +33,38 @@ function showVictory(name) {
         return;
     }
     
-    if (matchMode === 'survival' && currentSteps > bestRecord) {
+    if (opponentType === 'survival' && currentSteps > bestRecord) {
         bestRecord = currentSteps;
         localStorage.setItem('tronRecord', bestRecord);
         const recordDisplay = document.getElementById('menuRecordDisplay');
         if (recordDisplay) recordDisplay.innerText = bestRecord;
         showMessage(`🏆 НОВЫЙ РЕКОРД: ${bestRecord} шагов!`);
     }
-    
-    if (typeof speakVictory === 'function') {
-        speakVictory(`${name} победил!`);
-    }
 }
 
 function updateGame() {
-    try {
-        if (typeof updateFireworks === 'function') updateFireworks();
-    } catch(e) {}
-    
     if (!gameActive) return;
     
-    // ===== РЕЖИМ ГОНКИ =====
-    if (matchMode === 'race') {
-        if (typeof updateRace === 'function') updateRace();
-        if (typeof drawRace === 'function') drawRace();
-        updateUI();
-        return;
-    }
-    
-    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
         p.x += p.dirX;
         p.y += p.dirY;
         p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > 30) p.trail.shift();
+        if (p.trail.length > 15) p.trail.shift();
         if (typeof addParticles === 'function') addParticles(p.x, p.y, p.color);
     }
     
-    // ===== ОБНОВЛЕНИЕ РЕЖИМОВ =====
-    if (matchMode === 'survival') {
+    if (opponentType === 'survival') {
         if (typeof updateSurvival === 'function') updateSurvival();
-        if (typeof spawnTimer !== 'undefined' && gameActive) {
-            spawnTimer += 16;
-        }
     } else {
         if (typeof aiMove === 'function') aiMove();
     }
     
     if (typeof updateParticles === 'function') updateParticles();
     
-    // ============================================================
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
-    // ============================================================
     for (let p of players) {
         if (!p.alive) continue;
         
-        // ===== УРОН БОТУ ОТ ЛИНИЙ ИГРОКА (VS AI) =====
-        if (p === players[1] && opponentType === 'ai' && players[1].alive) {
-            const playerTrail = players[0].trail || [];
-            for (let i = 0; i < playerTrail.length - 1; i++) {
-                const seg = playerTrail[i];
-                if (p.x === seg.x && p.y === seg.y) {
-                    p.alive = false;
-                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
-                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-                    showMessage('🎯 ВЫ СБИЛИ БОТА!');
-                    break;
-                }
-            }
-        }
-        if (!p.alive) continue;
-        
-        // ===== УРОН ИГРОКУ ОТ ЛИНИЙ БОТА (VS AI) =====
-        if (p === players[0] && opponentType === 'ai' && players[0].alive) {
-            const botTrail = players[1].trail || [];
-            for (let i = 0; i < botTrail.length - 1; i++) {
-                const seg = botTrail[i];
-                if (p.x === seg.x && p.y === seg.y) {
-                    p.alive = false;
-                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
-                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-                    showMessage('💥 ВЫ ВРЕЗАЛИСЬ В СЛЕД БОТА!');
-                    break;
-                }
-            }
-        }
-        if (!p.alive) continue;
-        
-        // ===== ГРАНИЦЫ =====
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
@@ -134,7 +72,6 @@ function updateGame() {
             continue;
         }
         
-        // ===== СВОЙ СЛЕД =====
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -145,7 +82,6 @@ function updateGame() {
         }
         if (!p.alive) continue;
         
-        // ===== СЛЕДЫ ДРУГИХ ИГРОКОВ (2P) =====
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -165,10 +101,9 @@ function updateGame() {
             }
             if (!p.alive) break;
         }
-        if (!p.alive) continue;
         
-        // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
-        if (matchMode === 'survival' && typeof survivalEnemies !== 'undefined') {
+        if (!p.alive) continue;
+        if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
                 if (!e.alive) continue;
                 for (let i = 0; i < e.trail.length - 1; i++) {
@@ -189,29 +124,10 @@ function updateGame() {
                 if (!p.alive) break;
             }
         }
-        if (!p.alive) continue;
-        
-        // ===== БОСС (ТОЛЬКО В ВЫЖИВАНИИ) =====
-        if (matchMode === 'survival' && typeof boss !== 'undefined' && boss && boss.alive) {
-            for (let dx = 0; dx < boss.size; dx++) {
-                for (let dy = 0; dy < boss.size; dy++) {
-                    const bx = boss.x + dx;
-                    const by = boss.y + dy;
-                    if (p.x === bx && p.y === by) {
-                        p.alive = false;
-                        crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
-                        if (typeof explode === 'function') explode(p.x, p.y, p.color);
-                        break;
-                    }
-                }
-                if (!p.alive) break;
-            }
-        }
     }
     
-    // ===== ОПРЕДЕЛЕНИЕ ПОБЕДИТЕЛЯ =====
     const alivePlayers = players.filter(p => p.alive);
-    if (alivePlayers.length === 1 && matchMode !== 'survival') {
+    if (alivePlayers.length === 1 && opponentType !== 'survival') {
         let winnerIdx = players.findIndex(p => p.alive);
         players[winnerIdx].score++;
         gameActive = false;
@@ -223,16 +139,15 @@ function updateGame() {
         return;
     }
     
-    if (alivePlayers.length === 0 && matchMode !== 'survival') {
+    if (alivePlayers.length === 0 && opponentType !== 'survival') {
         gameActive = false;
         showMessage('Ничья!');
         if (typeof stopBgMusic === 'function') stopBgMusic();
         return;
     }
     
-    if (matchMode === 'survival' && !players[0].alive) {
+    if (opponentType === 'survival' && !players[0].alive) {
         gameActive = false;
-        if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
         showMessage('ВЫ ПРОИГРАЛИ! Нажмите ИГРАТЬ');
         if (typeof stopBgMusic === 'function') stopBgMusic();
         return;
@@ -244,13 +159,10 @@ function updateGame() {
 }
 
 function initGame() {
-    if (typeof survivalEnemies !== 'undefined') survivalEnemies = [];
-    if (typeof spawnTimer !== 'undefined') spawnTimer = 0;
     if (typeof resetPlayers === 'function') resetPlayers();
     
-    if (matchMode === 'survival') {
+    if (opponentType === 'survival') {
         if (typeof spawnSurvivalEnemies === 'function') spawnSurvivalEnemies();
-        if (typeof resetSurvivalTimer === 'function') resetSurvivalTimer();
         players[1].alive = false;
     }
     
@@ -260,6 +172,7 @@ function initGame() {
     crashEffect.active = false;
     particles = [];
     currentSteps = 0;
+    
     updateUI();
     if (typeof draw === 'function') draw();
     
