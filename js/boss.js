@@ -57,7 +57,8 @@ function spawnBoss() {
         size: BOSS_SIZE,
         trailOffsetX: Math.floor(BOSS_SIZE / 2),
         trailOffsetY: Math.floor(BOSS_SIZE / 2),
-        lastDirection: { dx: dirX, dy: dirY }
+        lastDirection: { dx: dirX, dy: dirY },
+        stuckCounter: 0
     };
     
     const startX = boss.x + boss.trailOffsetX;
@@ -79,12 +80,12 @@ function updateBoss() {
     
     if (boss.spawnProtection > 0) {
         boss.spawnProtection--;
+        return; // ← ВАЖНО: босс не двигается и неуязвим во время защиты
     }
     
     // ============================================================
     // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА С ИГРОКОМ =====
     // ============================================================
-    // Проверяем каждую клетку босса (BOSS_SIZE x BOSS_SIZE)
     for (let dx = 0; dx < boss.size; dx++) {
         for (let dy = 0; dy < boss.size; dy++) {
             const bx = boss.x + dx;
@@ -144,6 +145,35 @@ function updateBoss() {
     }
     
     // ============================================================
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА СО СВОИМ СЛЕДОМ =====
+    // ============================================================
+    // Босс не может ездить по своему следу (но может пересекать)
+    for (let i = 0; i < boss.trail.length - 2; i++) {
+        const seg = boss.trail[i];
+        for (let dx = 0; dx < boss.size; dx++) {
+            for (let dy = 0; dy < boss.size; dy++) {
+                const bx = boss.x + dx;
+                const by = boss.y + dy;
+                if (bx === seg.x && by === seg.y) {
+                    // Босс наехал на свой след — разворачиваемся
+                    boss.dirX = -boss.dirX || 1;
+                    boss.dirY = -boss.dirY || 1;
+                    boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
+                    // Добавляем небольшое случайное смещение, чтобы не застрять
+                    boss.stuckCounter++;
+                    if (boss.stuckCounter > 3) {
+                        boss.dirX = 0;
+                        boss.dirY = (Math.random() < 0.5) ? 1 : -1;
+                        boss.stuckCounter = 0;
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    boss.stuckCounter = 0;
+    
+    // ============================================================
     // ===== ОСНОВНАЯ ЛОГИКА ДВИЖЕНИЯ =====
     // ============================================================
     const dx = player.x - boss.x;
@@ -181,16 +211,23 @@ function updateBoss() {
             newDirX = 1;
         }
         
+        // ===== ЗАПРЕТ РАЗВОРОТА НАЗАД =====
         if (boss.lastDirection) {
-            const isReverse = (newDirX === -boss.lastDirection.dx || newDirY === -boss.lastDirection.dy) &&
-                              (newDirX === 0 || newDirY === 0);
-            if (isReverse) {
+            const isReverseX = newDirX === -boss.lastDirection.dx && newDirY === 0;
+            const isReverseY = newDirY === -boss.lastDirection.dy && newDirX === 0;
+            const isFullReverse = newDirX === -boss.lastDirection.dx && newDirY === -boss.lastDirection.dy;
+            
+            if (isReverseX || isReverseY || isFullReverse) {
+                // Выбираем альтернативное направление
                 if (newDirX !== 0) {
                     newDirX = 0;
                     newDirY = (Math.random() < 0.5) ? 1 : -1;
-                } else {
+                } else if (newDirY !== 0) {
                     newDirY = 0;
                     newDirX = (Math.random() < 0.5) ? 1 : -1;
+                } else {
+                    newDirX = boss.lastDirection.dx;
+                    newDirY = boss.lastDirection.dy;
                 }
             }
         }
