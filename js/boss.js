@@ -80,29 +80,37 @@ function updateBoss() {
     
     if (boss.spawnProtection > 0) {
         boss.spawnProtection--;
-        return; // ← ВАЖНО: босс не двигается и неуязвим во время защиты
+        return;
     }
     
     // ============================================================
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА С ИГРОКОМ =====
+    // ===== СТОЛКНОВЕНИЕ БОССА С ИГРОКОМ (ОТТАЛКИВАНИЕ) =====
     // ============================================================
+    let hitPlayer = false;
     for (let dx = 0; dx < boss.size; dx++) {
         for (let dy = 0; dy < boss.size; dy++) {
             const bx = boss.x + dx;
             const by = boss.y + dy;
             if (player.alive && bx === player.x && by === player.y) {
-                player.alive = false;
-                if (typeof explode === 'function') explode(player.x, player.y, player.color);
-                gameActive = false;
-                showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
-                if (typeof stopBgMusic === 'function') stopBgMusic();
-                return;
+                hitPlayer = true;
+                break;
             }
         }
+        if (hitPlayer) break;
+    }
+    
+    if (hitPlayer) {
+        // Игрок умирает
+        player.alive = false;
+        if (typeof explode === 'function') explode(player.x, player.y, player.color);
+        gameActive = false;
+        showMessage('💀 ВАС СБИЛ LIGHT RUNNER!');
+        if (typeof stopBgMusic === 'function') stopBgMusic();
+        return;
     }
     
     // ============================================================
-    // ===== ПРОВЕРКА УРОНА БОССУ ОТ ЛИНИЙ ИГРОКА =====
+    // ===== УРОН БОССУ ОТ ЛИНИЙ ИГРОКА =====
     // ============================================================
     const playerTrail = player.trail || [];
     for (let t = 0; t < playerTrail.length - 1; t++) {
@@ -134,6 +142,7 @@ function updateBoss() {
                         return;
                     } else {
                         showMessage(`💥 LIGHT RUNNER РАНЕН! ❤️ ${boss.health}/${boss.maxHealth}`);
+                        // Отталкиваем босса от следа
                         boss.dirX = -boss.dirX || 1;
                         boss.dirY = -boss.dirY || 1;
                         boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
@@ -147,7 +156,6 @@ function updateBoss() {
     // ============================================================
     // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА СО СВОИМ СЛЕДОМ =====
     // ============================================================
-    // Босс не может ездить по своему следу (но может пересекать)
     for (let i = 0; i < boss.trail.length - 2; i++) {
         const seg = boss.trail[i];
         for (let dx = 0; dx < boss.size; dx++) {
@@ -159,7 +167,6 @@ function updateBoss() {
                     boss.dirX = -boss.dirX || 1;
                     boss.dirY = -boss.dirY || 1;
                     boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
-                    // Добавляем небольшое случайное смещение, чтобы не застрять
                     boss.stuckCounter++;
                     if (boss.stuckCounter > 3) {
                         boss.dirX = 0;
@@ -218,7 +225,6 @@ function updateBoss() {
             const isFullReverse = newDirX === -boss.lastDirection.dx && newDirY === -boss.lastDirection.dy;
             
             if (isReverseX || isReverseY || isFullReverse) {
-                // Выбираем альтернативное направление
                 if (newDirX !== 0) {
                     newDirX = 0;
                     newDirY = (Math.random() < 0.5) ? 1 : -1;
