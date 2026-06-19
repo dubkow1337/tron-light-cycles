@@ -81,6 +81,8 @@ function setupEventListeners() {
             matchMode = 'survival';
             setMenuActive('match', 'menuMatchSurvival');
             tournamentActive = false;
+            // Принудительно устанавливаем противника для выживания
+            opponentType = 'survival';
             showMessage('Режим: ВЫЖИВАНИЕ');
         });
     }
@@ -103,7 +105,15 @@ function setupEventListeners() {
                 } else {
                     console.error('Функция startRace не найдена!');
                 }
+            } else if (matchMode === 'survival') {
+                // Запускаем выживание
+                if (typeof updateUI === 'function') updateUI();
+                showScreen('gameScreen');
+                // Устанавливаем тип противника для выживания
+                opponentType = 'survival';
+                if (typeof resetGame === 'function') resetGame();
             } else {
+                // Классика или турнир
                 if (typeof updateUI === 'function') updateUI();
                 showScreen('gameScreen');
                 if (typeof resetGame === 'function') resetGame();
@@ -150,6 +160,12 @@ function setupEventListeners() {
                 if (typeof startRace === 'function') {
                     startRace();
                 }
+            } else if (matchMode === 'survival') {
+                // Перезапуск выживания
+                opponentType = 'survival';
+                if (typeof resetGame === 'function') {
+                    resetGame();
+                }
             } else {
                 if (typeof resetGame === 'function') {
                     resetGame();
@@ -189,7 +205,7 @@ function setupEventListeners() {
             return;
         }
         
-        // Обычное управление для 2p и AI
+        // Обычное управление для 2p, AI, выживание
         if (typeof gameActive === 'undefined' || !gameActive || paused || countdownActive) return;
         
         if (players[0].alive) {
