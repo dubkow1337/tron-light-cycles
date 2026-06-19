@@ -75,14 +75,14 @@ function updateGame() {
     
     if (typeof bonusEffects !== 'undefined') {
         if (bonusEffects.speed && bonusEffects.speed.active) {
-            speedMultiplier = 1.5; // ускорение на 50%
+            speedMultiplier = 1.5;
         }
         if (bonusEffects.shield && bonusEffects.shield.active) {
             shieldActive = true;
         }
     }
     
-    // ===== ДВИЖЕНИЕ ИГРОКОВ (с ускорением) =====
+    // ===== ДВИЖЕНИЕ ИГРОКОВ =====
     for (let p of players) {
         if (!p.alive) continue;
         p.x += p.dirX * speedMultiplier;
@@ -102,9 +102,7 @@ function updateGame() {
         if (typeof aiMove === 'function') aiMove();
     }
     
-    // ============================================================
     // ===== БОНУСЫ (ОБНОВЛЕНИЕ И СБОР) =====
-    // ============================================================
     if (typeof updateBonuses === 'function') {
         updateBonuses();
     }
@@ -125,17 +123,46 @@ function updateGame() {
     if (typeof updateParticles === 'function') updateParticles();
     
     // ============================================================
-    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ (с учётом щита) =====
+    // ===== ПРОВЕРКА СТОЛКНОВЕНИЙ =====
     // ============================================================
     for (let p of players) {
         if (!p.alive) continue;
         
         // ===== ЩИТ (полная неуязвимость) =====
         if (shieldActive && p === players[0]) {
-            continue; // ← пропускаем все проверки
+            continue;
         }
         
-        // Границы
+        // ===== УРОН БОТУ ОТ ЛИНИЙ ИГРОКА =====
+        if (p === players[1] && opponentType === 'ai') {
+            // Проверяем, не врезался ли бот в след игрока
+            for (let i = 0; i < players[0].trail.length - 1; i++) {
+                const seg = players[0].trail[i];
+                if (p.x === seg.x && p.y === seg.y) {
+                    p.alive = false;
+                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
+                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
+                    break;
+                }
+            }
+        }
+        if (!p.alive) continue;
+        
+        // ===== УРОН ИГРОКУ ОТ ЛИНИЙ БОТА =====
+        if (p === players[0] && opponentType === 'ai') {
+            for (let i = 0; i < players[1].trail.length - 1; i++) {
+                const seg = players[1].trail[i];
+                if (p.x === seg.x && p.y === seg.y) {
+                    p.alive = false;
+                    if (typeof explode === 'function') explode(p.x, p.y, p.color);
+                    crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
+                    break;
+                }
+            }
+        }
+        if (!p.alive) continue;
+        
+        // ===== ГРАНИЦЫ =====
         if (p.x < 0 || p.x >= WIDTH || p.y < 0 || p.y >= HEIGHT) {
             p.alive = false;
             crashEffect = { active: true, x: p.x, y: p.y, color: p.color, timer: 5 };
@@ -143,7 +170,7 @@ function updateGame() {
             continue;
         }
         
-        // Свой след
+        // ===== СВОЙ СЛЕД =====
         for (let i = 0; i < p.trail.length - 2; i++) {
             if (p.trail[i].x === p.x && p.trail[i].y === p.y) {
                 p.alive = false;
@@ -154,7 +181,7 @@ function updateGame() {
         }
         if (!p.alive) continue;
         
-        // Следы других игроков
+        // ===== СЛЕДЫ ДРУГИХ ИГРОКОВ (2P) =====
         for (let other of players) {
             if (other === p) continue;
             for (let i = 0; i < other.trail.length - 1; i++) {
@@ -174,9 +201,9 @@ function updateGame() {
             }
             if (!p.alive) break;
         }
-        
-        // Следы врагов (выживание)
         if (!p.alive) continue;
+        
+        // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
         if (typeof survivalEnemies !== 'undefined') {
             for (let e of survivalEnemies) {
                 if (!e.alive) continue;
@@ -198,9 +225,9 @@ function updateGame() {
                 if (!p.alive) break;
             }
         }
-        
-        // Босс
         if (!p.alive) continue;
+        
+        // ===== БОСС =====
         if (typeof boss !== 'undefined' && boss && boss.alive) {
             for (let dx = 0; dx < boss.size; dx++) {
                 for (let dy = 0; dy < boss.size; dy++) {
