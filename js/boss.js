@@ -12,29 +12,28 @@ function spawnBoss() {
     let x, y;
     let dirX = 0, dirY = 0;
     
-    // Сторона въезда
     const side = Math.floor(Math.random() * 4);
     
     switch(side) {
-        case 0: // сверху
+        case 0:
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
             y = -BOSS_SIZE - 1;
             dirX = 0;
             dirY = 1;
             break;
-        case 1: // снизу
+        case 1:
             x = 2 + Math.floor(Math.random() * (WIDTH - 4));
             y = HEIGHT + 1;
             dirX = 0;
             dirY = -1;
             break;
-        case 2: // слева
+        case 2:
             x = -BOSS_SIZE - 1;
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = 1;
             dirY = 0;
             break;
-        case 3: // справа
+        case 3:
             x = WIDTH + 1;
             y = 2 + Math.floor(Math.random() * (HEIGHT - 4));
             dirX = -1;
@@ -63,7 +62,6 @@ function spawnBoss() {
         lastDirection: { dx: dirX, dy: dirY }
     };
     
-    // Начальная точка следа (чтобы не было пустого следа)
     const startX = boss.x + boss.trailOffsetX;
     const startY = boss.y + boss.trailOffsetY;
     boss.trail.push({ x: startX, y: startY });
@@ -85,19 +83,16 @@ function updateBoss() {
         boss.spawnProtection--;
     }
     
-    // ===== ВЪЕЗД НА ПОЛЕ =====
+    // ===== ВЪЕЗД =====
     if (boss.entering) {
-        // Движение к полю
         boss.x += boss.dirX * boss.speed;
         boss.y += boss.dirY * boss.speed;
         
-        // Добавляем след во время въезда
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
         if (boss.trail.length > 100) boss.trail.shift();
         
-        // Проверяем, въехал ли на поле
         const onField = boss.x >= 0 && boss.x < WIDTH && boss.y >= 0 && boss.y < HEIGHT;
         if (onField) {
             boss.entering = false;
@@ -106,7 +101,7 @@ function updateBoss() {
         return;
     }
     
-    // ===== ОСНОВНАЯ ЛОГИКА (на поле) =====
+    // ===== ОСНОВНАЯ ЛОГИКА =====
     const dx = player.x - boss.x;
     const dy = player.y - boss.y;
     const distToPlayer = Math.hypot(dx, dy);
@@ -142,12 +137,10 @@ function updateBoss() {
             newDirX = 1;
         }
         
-        // Запрет разворота назад
         if (boss.lastDirection) {
             const isReverse = (newDirX === -boss.lastDirection.dx || newDirY === -boss.lastDirection.dy) &&
                               (newDirX === 0 || newDirY === 0);
             if (isReverse) {
-                // Выбираем альтернативу (вверх или вниз)
                 if (newDirX !== 0) {
                     newDirX = 0;
                     newDirY = (Math.random() < 0.5) ? 1 : -1;
@@ -169,7 +162,6 @@ function updateBoss() {
         const newY = boss.y + boss.dirY;
         
         if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
-            // Если упёрся в стену — разворачиваемся
             boss.dirX = -boss.dirX || 1;
             boss.dirY = -boss.dirY || 1;
             boss.lastDirection = { dx: boss.dirX, dy: boss.dirY };
@@ -179,13 +171,13 @@ function updateBoss() {
         boss.x = newX;
         boss.y = newY;
         
-        // След
         const trailX = boss.x + boss.trailOffsetX;
         const trailY = boss.y + boss.trailOffsetY;
         boss.trail.push({ x: trailX, y: trailY });
         if (boss.trail.length > 100) boss.trail.shift();
         
         // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ СО СЛЕДАМИ ИГРОКА =====
+        // БОСС ПОЛУЧАЕТ УРОН ОТ ТВОИХ ЛИНИЙ!
         let hitPlayerTrail = false;
         const playerTrail = player.trail || [];
         
@@ -234,7 +226,7 @@ function updateBoss() {
             }
         }
         
-        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ С ИГРОКОМ =====
+        // ===== ПРОВЕРКА СТОЛКНОВЕНИЯ БОССА С ИГРОКОМ =====
         for (let dx = 0; dx < BOSS_SIZE; dx++) {
             for (let dy = 0; dy < BOSS_SIZE; dy++) {
                 const bx = boss.x + dx;
