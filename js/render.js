@@ -2,10 +2,14 @@
 
 let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
-// boss объявлен в boss.js — НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
+// boss объявлен в boss.js
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// Единые настройки следа
+const TRAIL_LENGTH = 30;      // ← длина следа (количество точек)
+const TRAIL_FADE = true;      // ← затухание включено
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -49,7 +53,6 @@ function updateParticles() {
             i--;
         }
     }
-    // Салют обновляется отдельно
     if (typeof updateFireworks === 'function') {
         updateFireworks();
     }
@@ -64,20 +67,57 @@ function drawParticles() {
     ctx.globalAlpha = 1;
 }
 
+// ===== УНИВЕРСАЛЬНАЯ ОТРИСОВКА СЛЕДА С ЗАТУХАНИЕМ =====
+function drawTrail(trail, color, shadowColor, lineWidth) {
+    if (!trail || trail.length < 2) return;
+    
+    const len = trail.length;
+    const maxLen = TRAIL_LENGTH;
+    
+    // Обрезаем след до единой длины
+    const start = Math.max(0, len - maxLen);
+    const points = trail.slice(start);
+    const pointsLen = points.length;
+    
+    if (pointsLen < 2) return;
+    
+    // Рисуем сегментами с прозрачностью
+    for (let i = 0; i < pointsLen - 1; i++) {
+        const progress = i / pointsLen; // 0 — начало (старый), 1 — конец (свежий)
+        const alpha = TRAIL_FADE ? Math.pow(progress, 0.6) : 1; // затухание к концу
+        
+        ctx.beginPath();
+        ctx.lineWidth = lineWidth || 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowBlur = 6 * alpha;
+        ctx.shadowColor = shadowColor || color;
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = color;
+        
+        const p1 = points[i];
+        const p2 = points[i+1];
+        ctx.moveTo(p1.x * CELL_SIZE + CELL_SIZE/2, p1.y * CELL_SIZE + CELL_SIZE/2);
+        ctx.lineTo(p2.x * CELL_SIZE + CELL_SIZE/2, p2.y * CELL_SIZE + CELL_SIZE/2);
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+}
+
 function draw() {
     if (!ctx) return;
     
-    // ===== САЛЮТ (задний фон, рисуем перед сеткой) =====
+    // Салют на заднем фоне
     if (typeof drawFireworks === 'function') {
         drawFireworks();
     }
     
-    // ===== ФОН =====
     ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
-    // ===== СЕТКА =====
+    // Сетка
     ctx.strokeStyle = '#0f3f3a';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
@@ -94,41 +134,16 @@ function draw() {
     // ===== СЛЕДЫ ИГРОКОВ =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
-            if (p.trail && p.trail.length >= 2) {
-                ctx.beginPath();
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.shadowBlur = 6;
-                ctx.shadowColor = p.trailColor;
-                ctx.strokeStyle = p.trailColor;
-                ctx.moveTo(p.trail[0].x * CELL_SIZE + CELL_SIZE/2, p.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-                for (let i = 1; i < p.trail.length; i++) {
-                    ctx.lineTo(p.trail[i].x * CELL_SIZE + CELL_SIZE/2, p.trail[i].y * CELL_SIZE + CELL_SIZE/2);
-                }
-                ctx.stroke();
-            }
+            drawTrail(p.trail, p.trailColor, p.trailColor, 3);
         }
     }
     
     // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
-            if (e.trail && e.trail.length >= 2) {
-                ctx.beginPath();
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.shadowBlur = 4;
-                ctx.shadowColor = e.trailColor;
-                ctx.strokeStyle = e.trailColor;
-                ctx.moveTo(e.trail[0].x * CELL_SIZE + CELL_SIZE/2, e.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-                for (let i = 1; i < e.trail.length; i++) {
-                    ctx.lineTo(e.trail[i].x * CELL_SIZE + CELL_SIZE/2, e.trail[i].y * CELL_SIZE + CELL_SIZE/2);
-                }
-                ctx.stroke();
-            }
+            drawTrail(e.trail, e.trailColor, e.trailColor, 3);
         }
+        // Отрисовка врагов
         for (let e of survivalEnemies) {
             const cx = e.x * CELL_SIZE + CELL_SIZE / 2;
             const cy = e.y * CELL_SIZE + CELL_SIZE / 2;
@@ -153,20 +168,7 @@ function draw() {
     
     // ===== БОСС =====
     if (typeof boss !== 'undefined' && boss && boss.alive) {
-        if (boss.trail && boss.trail.length >= 2) {
-            ctx.beginPath();
-            ctx.lineWidth = 5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = boss.trailColor || '#ff2200';
-            ctx.strokeStyle = boss.trailColor || '#ff2200';
-            ctx.moveTo(boss.trail[0].x * CELL_SIZE + CELL_SIZE/2, boss.trail[0].y * CELL_SIZE + CELL_SIZE/2);
-            for (let i = 1; i < boss.trail.length; i++) {
-                ctx.lineTo(boss.trail[i].x * CELL_SIZE + CELL_SIZE/2, boss.trail[i].y * CELL_SIZE + CELL_SIZE/2);
-            }
-            ctx.stroke();
-        }
+        drawTrail(boss.trail, boss.trailColor || '#ff2200', boss.trailColor || '#ff2200', 5);
         const size = boss.size || 3;
         const cx = boss.x * CELL_SIZE + (size * CELL_SIZE) / 2;
         const cy = boss.y * CELL_SIZE + (size * CELL_SIZE) / 2;
@@ -201,10 +203,8 @@ function draw() {
         }
     }
     
-    // ===== ОБЫЧНЫЕ ЧАСТИЦЫ =====
     drawParticles();
     
-    // ===== ЭФФЕКТ СТОЛКНОВЕНИЯ =====
     if (crashEffect.active) {
         ctx.shadowBlur = 15;
         ctx.shadowColor = '#ffffff';
@@ -214,7 +214,6 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // ===== БОНУСЫ =====
     if (typeof drawBonuses === 'function') {
         drawBonuses();
     }
@@ -253,7 +252,6 @@ function draw() {
         }
     }
     
-    // ===== ОБРАТНЫЙ ОТСЧЁТ =====
     if (typeof countdownActive !== 'undefined' && countdownActive) {
         ctx.font = 'bold 64px "Courier New"';
         ctx.shadowBlur = 20;
@@ -271,7 +269,6 @@ function draw() {
         }
     }
     
-    // ===== ПАУЗА =====
     if (paused && gameActive && !countdownActive) {
         ctx.font = 'bold 36px "Courier New"';
         ctx.shadowBlur = 10;
@@ -283,8 +280,7 @@ function draw() {
     ctx.shadowBlur = 0;
 }
 
-// ========== САЛЮТ ==========
-
+// ===== САЛЮТ =====
 let fireworkParticles = [];
 let fireworkActive = false;
 
@@ -295,13 +291,10 @@ function startFireworks(color, count = 6) {
         fireworkActive = true;
         const colors = color === '#00ffff' ? ['#00ffff', '#0088ff', '#00ffcc'] : ['#ffaa00', '#ff6600', '#ffcc44'];
         
-        // Все взрывы одновременно (без задержек)
         for (let burst = 0; burst < count; burst++) {
-            // Слева
             const x1 = 50 + Math.random() * 150;
             const y1 = 50 + Math.random() * (canvas.height - 100);
             createFireworkBurst(x1, y1, colors);
-            // Справа
             const x2 = canvas.width - 50 - Math.random() * 150;
             const y2 = 50 + Math.random() * (canvas.height - 100);
             createFireworkBurst(x2, y2, colors);
