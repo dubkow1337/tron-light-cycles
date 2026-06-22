@@ -4,12 +4,36 @@ let particles = [];
 let crashEffect = { active: false, x: 0, y: 0, color: '#ffffff', timer: 0 };
 // boss объявлен в boss.js
 
+// Эффекты взрыва - используем глобальную переменную
+if (typeof window.explosionEffects === 'undefined') {
+    window.explosionEffects = [];
+}
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Единые настройки следа
-const TRAIL_LENGTH = 30;
+const TRAIL_LENGTH = 50;
 const TRAIL_FADE = true;
+
+// ===== ЗВЕЗДЫ ДЛЯ ФОНА =====
+let stars = [];
+function initStars() {
+    stars = [];
+    for (let i = 0; i < 150; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 0.5,
+            speed: Math.random() * 0.3 + 0.1,
+            alpha: Math.random() * 0.5 + 0.2,
+            twinkle: Math.random() * Math.PI * 2
+        });
+    }
+}
+initStars();
+
+// cloneData объявлен в bonuses.js — НЕ ОБЪЯВЛЯЕМ ЕГО ЗДЕСЬ!
 
 function explode(x, y, color) {
     const particleCount = 40;
@@ -102,20 +126,137 @@ function drawTrail(trail, color, shadowColor, lineWidth) {
     ctx.shadowBlur = 0;
 }
 
+// ========== ЭФФЕКТЫ ВЗРЫВА ==========
+function createExplosionEffect(centerX, centerY, radius) {
+    const effects = window.explosionEffects;
+    
+    effects.push({
+        x: centerX * CELL_SIZE + CELL_SIZE / 2,
+        y: centerY * CELL_SIZE + CELL_SIZE / 2,
+        radius: 0,
+        maxRadius: radius * CELL_SIZE,
+        life: 1.0,
+        color: '#ff4400'
+    });
+    
+    const count = 60 + Math.floor(Math.random() * 40);
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 8 + 3;
+        const colors = ['#ff4400', '#ff8800', '#ffcc00', '#ff2200', '#ffffff'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        particles.push({
+            x: centerX * CELL_SIZE + CELL_SIZE / 2,
+            y: centerY * CELL_SIZE + CELL_SIZE / 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 1.0,
+            color: color,
+            size: Math.random() * 6 + 2
+        });
+    }
+}
+
+function updateExplosionEffects() {
+    const effects = window.explosionEffects;
+    for (let i = effects.length - 1; i >= 0; i--) {
+        const e = effects[i];
+        e.radius += 2;
+        e.life -= 0.02;
+        
+        if (e.life <= 0 || e.radius >= e.maxRadius) {
+            effects.splice(i, 1);
+        }
+    }
+}
+
+function drawExplosionEffects() {
+    const effects = window.explosionEffects;
+    for (let e of effects) {
+        ctx.save();
+        ctx.globalAlpha = e.life * 0.6;
+        
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = e.color;
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.shadowBlur = 60;
+        ctx.shadowColor = '#ff8800';
+        ctx.strokeStyle = '#ff8800';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.radius * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        if (e.radius < e.maxRadius * 0.3) {
+            ctx.shadowBlur = 80;
+            ctx.shadowColor = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, 4 * (1 - e.radius / (e.maxRadius * 0.3)), 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        ctx.restore();
+    }
+}
+
 function draw() {
     if (!ctx) return;
     
-    // Салют на заднем фоне
+    // ============================================================
+    // ===== 1. ФОН: ГЛУБОКИЙ КОСМОС СО ЗВЕЗДАМИ =====
+    // ============================================================
+    // Градиент от темно-синего к черному
+    const gradient = ctx.createRadialGradient(
+        canvas.width/2, canvas.height/2, 0,
+        canvas.width/2, canvas.height/2, canvas.width * 0.7
+    );
+    gradient.addColorStop(0, '#0a1a2a');
+    gradient.addColorStop(0.7, '#050d18');
+    gradient.addColorStop(1, '#020408');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Мерцающие звезды
+    const time = Date.now() * 0.001;
+    for (let s of stars) {
+        const alpha = s.alpha * (0.7 + 0.3 * Math.sin(time * s.twinkle + s.x));
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#88ccff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    
+    // Неоновая дымка в центре
+    const glow = ctx.createRadialGradient(
+        canvas.width/2, canvas.height/2, 0,
+        canvas.width/2, canvas.height/2, canvas.width * 0.3
+    );
+    glow.addColorStop(0, 'rgba(0, 200, 255, 0.03)');
+    glow.addColorStop(1, 'rgba(0, 200, 255, 0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // ============================================================
+    // ===== 2. ИГРОВОЕ ПОЛЕ ПОВЕРХ =====
+    // ============================================================
+    
+    // Салют
     if (typeof drawFireworks === 'function') {
         drawFireworks();
     }
     
-    ctx.fillStyle = '#03050a';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.shadowBlur = 0;
     
-    // Сетка
-    ctx.strokeStyle = '#0f3f3a';
+    // Сетка (полупрозрачная)
+    ctx.strokeStyle = 'rgba(15, 63, 58, 0.25)';
     ctx.lineWidth = 1;
     for (let i = 0; i <= WIDTH; i++) {
         ctx.beginPath();
@@ -135,7 +276,12 @@ function draw() {
         }
     }
     
-    // ===== СЛЕДЫ ВРАГОВ (ВЫЖИВАНИЕ) =====
+    // ===== СЛЕД КЛОНА =====
+    if (typeof cloneData !== 'undefined' && cloneData && cloneData.active && cloneData.trail && cloneData.trail.length > 1) {
+        drawTrail(cloneData.trail, '#ff44ff', '#ff44ff', 3);
+    }
+    
+    // ===== СЛЕДЫ ВРАГОВ =====
     if (typeof survivalEnemies !== 'undefined') {
         for (let e of survivalEnemies) {
             drawTrail(e.trail, e.trailColor, e.trailColor, 3);
@@ -204,8 +350,18 @@ function draw() {
         drawBonuses();
     }
     
+    // ===== ИНДИКАТОРЫ БОНУСОВ =====
+    if (typeof drawBonusIndicators === 'function') {
+        drawBonusIndicators();
+    }
+    
     // ===== ЧАСТИЦЫ =====
     drawParticles();
+    
+    // ===== ЭФФЕКТЫ ВЗРЫВА =====
+    if (typeof drawExplosionEffects === 'function') {
+        drawExplosionEffects();
+    }
     
     // ===== ЭФФЕКТ СТОЛКНОВЕНИЯ =====
     if (crashEffect.active) {
@@ -217,7 +373,7 @@ function draw() {
         if (crashEffect.timer <= 0) crashEffect.active = false;
     }
     
-    // ===== МОТОЦИКЛЫ ИГРОКОВ =====
+    // ===== МОТОЦИКЛ ИГРОКА =====
     if (typeof players !== 'undefined') {
         for (let p of players) {
             if (p.alive) {
@@ -248,6 +404,46 @@ function draw() {
                 ctx.fill();
                 ctx.restore();
             }
+        }
+    }
+    
+    // ===== КЛОН =====
+    if (typeof cloneData !== 'undefined' && cloneData && cloneData.active && players[0] && players[0].alive) {
+        const cloneX = players[0].x + (cloneData.offsetX || 2);
+        const cloneY = players[0].y + (cloneData.offsetY || 0);
+        
+        if (cloneX >= 0 && cloneX < WIDTH && cloneY >= 0 && cloneY < HEIGHT) {
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            ctx.translate(cloneX * CELL_SIZE + CELL_SIZE/2, cloneY * CELL_SIZE + CELL_SIZE/2);
+            
+            if (players[0].dirX === 1) ctx.rotate(0);
+            else if (players[0].dirX === -1) ctx.rotate(Math.PI);
+            else if (players[0].dirY === -1) ctx.rotate(-Math.PI / 2);
+            else if (players[0].dirY === 1) ctx.rotate(Math.PI / 2);
+            
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ff44ff';
+            ctx.fillStyle = '#ff44ff';
+            ctx.beginPath();
+            ctx.moveTo(10, 0);
+            ctx.lineTo(-5, -6);
+            ctx.lineTo(-5, 6);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.moveTo(5, 0);
+            ctx.lineTo(-2, -3);
+            ctx.lineTo(-2, 3);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            ctx.restore();
         }
     }
     
